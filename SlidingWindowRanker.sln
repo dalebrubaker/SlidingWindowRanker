@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionFolder", "SolutionFolder", "{9BE9075E-F4CE-4F83-9975-D2AEC9B41933}"
 	ProjectSection(SolutionItems) = preProject
 		ReadMe.md = ReadMe.md
+		.github\workflows\ci.yml = .github\workflows\ci.yml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "Benchmarks\Benchmarks.csproj", "{596DFA8D-BDA8-4C8F-9083-EC840C1D741D}"

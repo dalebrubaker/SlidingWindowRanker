@@ -158,7 +158,7 @@ public class CollectionExtensionTests
     public void GetUpperBound_Array_Range_InvalidRange()
     {
         int[] array = [1, 2, 2, 3, 4, 5];
-        Assert.Throws<ArgumentException>(() => CollectionExtensions.GetUpperBound(array, -1, 2, 2));
-        Assert.Throws<ArgumentException>(() => CollectionExtensions.GetUpperBound(array, 2, 7, 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => CollectionExtensions.GetUpperBound(array, -1, 2, 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => CollectionExtensions.GetUpperBound(array, 2, 7, 2));
     }
 }
