@@ -52,9 +52,9 @@ public static class CollectionExtensions
     ///     the index of first element in the array that does not satisfy element less than value, or Count if no such
     ///     element is found
     /// </returns>
-    public static int GetLowerBound<T>(this IList<T> array, T value) where T : IComparable<T>
+    public static int LowerBound<T>(this IList<T> array, T value) where T : IComparable<T>
     {
-        return array.GetLowerBound(0, array.Count, value);
+        return array.LowerBound(0, array.Count, value);
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ public static class CollectionExtensions
     ///     (Count) if no such element is
     ///     found
     /// </returns>
-    public static int GetLowerBoundOriginal<T>(this IList<T> array, int first, int last, T value) where T : IComparable<T>
+    public static int LowerBoundOriginal<T>(this IList<T> array, int first, int last, T value) where T : IComparable<T>
     {
         if (first < 0)
         {
@@ -113,9 +113,9 @@ public static class CollectionExtensions
     ///     the index of first element in the array such that value is less than element, or Count if no such element is
     ///     found
     /// </returns>
-    public static int GetUpperBound<T>(this IList<T> array, T value) where T : IComparable<T>
+    public static int UpperBound<T>(this IList<T> array, T value) where T : IComparable<T>
     {
-        return GetUpperBound(array, 0, array.Count, value);
+        return UpperBound(array, 0, array.Count, value);
     }
 
     // Arrays below here
@@ -130,9 +130,9 @@ public static class CollectionExtensions
     ///     the index of first element in the array that does not satisfy element less than value, or Count if no such
     ///     element is found
     /// </returns>
-    public static int GetLowerBound<T>(this T[] array, T value) where T : IComparable<T>
+    public static int LowerBound<T>(this T[] array, T value) where T : IComparable<T>
     {
-        return GetLowerBound(array, 0, array.Length, value);
+        return LowerBound(array, 0, array.Length, value);
     }
 
     /// <summary>
@@ -149,36 +149,35 @@ public static class CollectionExtensions
     ///     (Count) if no such element is
     ///     found
     /// </returns>
-    public static int GetLowerBound<T>(this T[] array, int first, int last, T value) where T : IComparable<T>
+    public static int LowerBound<T>(this T[] array, int first, int last, T value) where T : IComparable<T>
     {
-        if (first < 0)
+        if (array == null)
         {
-            throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
+            throw new ArgumentNullException(nameof(array));
         }
-        var count = array.Length;
-        if (last > count)
+        if (first < 0 || first > array.Length)
         {
-            throw new ArgumentException($"last={last:N0} must not be higher than {count:N0}", nameof(last));
+            throw new ArgumentOutOfRangeException(nameof(first), "First index is out of range.");
         }
-        count = last - first;
-        while (count > 0)
+        if (last < first || last > array.Length)
         {
-            var step = count / 2;
-            var i = first + step;
-            var arrayValue = array[i];
-            var compareTo = arrayValue.CompareTo(value);
-            if (compareTo < 0)
+            throw new ArgumentOutOfRangeException(nameof(last), "Last index is out of range.");
+        }
+        var low = first;
+        var high = last;
+        while (low < high)
+        {
+            var mid = low + ((high - low) >> 1);
+            if (array[mid].CompareTo(value) < 0)
             {
-                first = ++i;
-                count -= step + 1;
+                low = mid + 1;
             }
             else
             {
-                count = step;
+                high = mid;
             }
         }
-
-        return first;
+        return low;
     }
 
     /// <summary>
@@ -199,7 +198,7 @@ public static class CollectionExtensions
     ///     Thrown if first or last are out of range,
     ///     or if first is greater than last.
     /// </exception>
-    public static int GetLowerBound<T>(this IList<T> list, int first, int last, T value) where T : IComparable<T>
+    public static int LowerBound<T>(this IList<T> list, int first, int last, T value) where T : IComparable<T>
     {
         if (list == null)
         {
@@ -217,7 +216,7 @@ public static class CollectionExtensions
         var high = last;
         while (low < high)
         {
-            var mid = low + (high - low) / 2;
+            var mid = low + ((high - low) >> 1);
             if (list[mid].CompareTo(value) < 0)
             {
                 low = mid + 1;
@@ -240,9 +239,9 @@ public static class CollectionExtensions
     ///     the index of first element in the array such that value is less than element, or Count if no such element is
     ///     found
     /// </returns>
-    public static int GetUpperBound<T>(this T[] array, T value) where T : IComparable<T>
+    public static int UpperBound<T>(this T[] array, T value) where T : IComparable<T>
     {
-        return GetUpperBound(array, 0, array.Length, value);
+        return UpperBound(array, 0, array.Length, value);
     }
 
     /// <summary>
@@ -258,7 +257,7 @@ public static class CollectionExtensions
     ///     the index of first element in the range [first, last) such that value is less than element, or last (Count) if
     ///     no such element is found
     /// </returns>
-    public static int GetUpperBoundOriginal<T>(this T[] array, int first, int last, T value) where T : IComparable<T>
+    public static int UpperBoundOriginal<T>(this T[] array, int first, int last, T value) where T : IComparable<T>
     {
         if (first < 0)
         {
@@ -309,7 +308,7 @@ public static class CollectionExtensions
     ///     Thrown if first or last are out of range,
     ///     or if first is greater than last.
     /// </exception>
-    public static int GetUpperBound<T>(T[] array, int first, int last, T value, IComparer<T> comparer)
+    public static int UpperBound<T>(this T[] array, int first, int last, T value, IComparer<T>? comparer)
     {
         if (array == null)
         {
@@ -331,7 +330,7 @@ public static class CollectionExtensions
         var high = last;
         while (low < high)
         {
-            var mid = low + (high - low) / 2;
+            var mid = low + ((high - low) >> 1);
             if (comparer.Compare(array[mid], value) <= 0)
             {
                 low = mid + 1;
@@ -362,7 +361,7 @@ public static class CollectionExtensions
     ///     Thrown if first or last are out of range,
     ///     or if first is greater than last.
     /// </exception>
-    public static int GetUpperBound<T>(IList<T> list, int first, int last, T value) where T : IComparable<T>
+    public static int UpperBound<T>(this IList<T> list, int first, int last, T value) where T : IComparable<T>
     {
         if (list == null)
         {
@@ -380,7 +379,7 @@ public static class CollectionExtensions
         var high = last;
         while (low < high)
         {
-            var mid = low + (high - low) / 2;
+            var mid = low + ((high - low) >> 1);
             if (list[mid].CompareTo(value) <= 0)
             {
                 low = mid + 1;
@@ -406,7 +405,7 @@ public static class CollectionExtensions
     ///     the index of first element in the range [first, last) such that value is less than element, or last (Count) if
     ///     no such element is found
     /// </returns>
-    public static int GetUpperBoundOriginal<T>(this IList<T> list, int first, int last, T value) where T : IComparable<T>
+    public static int UpperBoundOriginal<T>(this IList<T> list, int first, int last, T value) where T : IComparable<T>
     {
         if (first < 0)
         {

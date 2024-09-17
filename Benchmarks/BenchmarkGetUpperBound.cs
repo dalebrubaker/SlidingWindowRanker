@@ -16,12 +16,12 @@ Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
 ```
 | Method                    | Mean     | Error    | StdDev   |
 |-------------------------- |---------:|---------:|---------:|
-| TestGetUpperBoundO1Mini   | 34.32 ms | 0.518 ms | 0.837 ms |
-| TestGetUpperBoundOriginal | 34.18 ms | 0.226 ms | 0.200 ms |
+| TestUpperBoundO1Mini   | 34.32 ms | 0.518 ms | 0.837 ms |
+| TestUpperBoundOriginal | 34.18 ms | 0.226 ms | 0.200 ms |
 
  */
 
-public class BenchmarkGetUpperBound
+public class BenchmarkUpperBound
 {
     private const int NumberOfIterations = 1000000;
     private readonly List<double> _list = new(NumberOfIterations);
@@ -37,20 +37,20 @@ public class BenchmarkGetUpperBound
     }
 
     [Benchmark]
-    public void TestGetUpperBoundO1Mini()
+    public void TestUpperBoundO1Mini()
     {
         for (var i = 0; i < NumberOfIterations - 1; i++)
         {
-            var index = _list.GetUpperBound(_list[i]);
+            var index = _list.UpperBound(_list[i]);
         }
     }
 
     [Benchmark]
-    public void TestGetUpperBoundOriginal()
+    public void TestUpperBoundOriginal()
     {
         for (var i = 0; i < NumberOfIterations - 1; i++)
         {
-            var index = _list.GetUpperBoundOriginal(0, _list.Count, _list[i]);
+            var index = _list.UpperBoundOriginal(0, _list.Count, _list[i]);
         }
     }
 }
