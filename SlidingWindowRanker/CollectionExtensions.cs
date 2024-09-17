@@ -12,7 +12,7 @@ public static class CollectionExtensions
             if (item.CompareTo(prevItem) < 0) return false;
             prevItem = item;
         }
-
+D
         return true;
     }
 
