@@ -118,51 +118,6 @@ public static class CollectionExtensions
         return GetUpperBound(array, 0, array.Count, value);
     }
 
-    /// <summary>
-    ///     Get the upper bound for value in the range from first to last.
-    ///     See https://en.cppreference.com/w/cpp/algorithm/upper_bound
-    /// </summary>
-    /// <param name="array"></param>
-    /// <param name="first">This first index to search, must be 0 or higher</param>
-    /// <param name="last">The index one higher than the highest index in the range (e.g. Count)</param>
-    /// <param name="value"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns>
-    ///     the index of first element in the range [first, last) such that value is less than element, or last (Count) if
-    ///     no such element is found
-    /// </returns>
-    public static int GetUpperBound<T>(this IList<T> array, int first, int last, T value) where T : IComparable<T>
-    {
-        if (first < 0)
-        {
-            throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
-        }
-        var count = array.Count;
-        if (last > count)
-        {
-            throw new ArgumentException($"last={last:N0} must not be higher than {count:N0}", nameof(last));
-        }
-        count = last - first;
-        while (count > 0)
-        {
-            var step = count / 2;
-            var i = first + step;
-            var arrayValue = array[i];
-            var compareTo = value.CompareTo(arrayValue);
-            if (compareTo >= 0)
-            {
-                first = ++i;
-                count -= step + 1;
-            }
-            else
-            {
-                count = step;
-            }
-        }
-
-        return first;
-    }
-
     // Arrays below here
     /// <summary>
     ///     Get the lower bound for value in the entire array
@@ -303,7 +258,7 @@ public static class CollectionExtensions
     ///     the index of first element in the range [first, last) such that value is less than element, or last (Count) if
     ///     no such element is found
     /// </returns>
-    public static int GetUpperBound<T>(this T[] array, int first, int last, T value) where T : IComparable<T>
+    public static int GetUpperBoundOriginal<T>(this T[] array, int first, int last, T value) where T : IComparable<T>
     {
         if (first < 0)
         {
@@ -320,6 +275,154 @@ public static class CollectionExtensions
             var step = count / 2;
             var i = first + step;
             var arrayValue = array[i];
+            var compareTo = value.CompareTo(arrayValue);
+            if (compareTo >= 0)
+            {
+                first = ++i;
+                count -= step + 1;
+            }
+            else
+            {
+                count = step;
+            }
+        }
+
+        return first;
+    }
+
+    /// <summary>
+    ///     From o1 Mini
+    ///     Finds the first index in the sorted array where the element is not less than the specified value.
+    /// </summary>
+    /// <typeparam name="T">Type of elements in the array. Must implement IComparable&lt;T&gt;.</typeparam>
+    /// <param name="array">The sorted array to search.</param>
+    /// <param name="first">The starting index of the search range (inclusive).</param>
+    /// <param name="last">The ending index of the search range (exclusive).</param>
+    /// <param name="value">The value to compare.</param>
+    /// <param name="comparer"></param>
+    /// <returns>
+    ///     The index of the first element that is not less than the specified value.
+    ///     If all elements are less, returns <paramref name="last" />.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown if the array is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     Thrown if first or last are out of range,
+    ///     or if first is greater than last.
+    /// </exception>
+    public static int GetUpperBound<T>(T[] array, int first, int last, T value, IComparer<T> comparer)
+    {
+        if (array == null)
+        {
+            throw new ArgumentNullException(nameof(array));
+        }
+        if (comparer == null)
+        {
+            comparer = Comparer<T>.Default;
+        }
+        if (first < 0 || first > array.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(first), "First index is out of range.");
+        }
+        if (last < first || last > array.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(last), "Last index is out of range.");
+        }
+        var low = first;
+        var high = last;
+        while (low < high)
+        {
+            var mid = low + (high - low) / 2;
+            if (comparer.Compare(array[mid], value) <= 0)
+            {
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid;
+            }
+        }
+        return low;
+    }
+
+    /// <summary>
+    ///     Finds the first index in the sorted list where the element is greater than the specified value.
+    ///     From o1 Mini
+    /// </summary>
+    /// <typeparam name="T">Type of elements in the list. Must implement IComparable&lt;T&gt;.</typeparam>
+    /// <param name="list">The sorted list to search.</param>
+    /// <param name="first">The starting index of the search range (inclusive).</param>
+    /// <param name="last">The ending index of the search range (exclusive).</param>
+    /// <param name="value">The value to compare.</param>
+    /// <returns>
+    ///     The index of the first element that is greater than the specified value.
+    ///     If no such element exists, returns <paramref name="last" />.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown if the list is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     Thrown if first or last are out of range,
+    ///     or if first is greater than last.
+    /// </exception>
+    public static int GetUpperBound<T>(IList<T> list, int first, int last, T value) where T : IComparable<T>
+    {
+        if (list == null)
+        {
+            throw new ArgumentNullException(nameof(list));
+        }
+        if (first < 0 || first > list.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(first), "First index is out of range.");
+        }
+        if (last < first || last > list.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(last), "Last index is out of range.");
+        }
+        var low = first;
+        var high = last;
+        while (low < high)
+        {
+            var mid = low + (high - low) / 2;
+            if (list[mid].CompareTo(value) <= 0)
+            {
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid;
+            }
+        }
+        return low;
+    }
+
+    /// <summary>
+    ///     Get the upper bound for value in the range from first to last.
+    ///     See https://en.cppreference.com/w/cpp/algorithm/upper_bound
+    /// </summary>
+    /// <param name="list"></param>
+    /// <param name="first">This first index to search, must be 0 or higher</param>
+    /// <param name="last">The index one higher than the highest index in the range (e.g. Count)</param>
+    /// <param name="value"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>
+    ///     the index of first element in the range [first, last) such that value is less than element, or last (Count) if
+    ///     no such element is found
+    /// </returns>
+    public static int GetUpperBoundOriginal<T>(this IList<T> list, int first, int last, T value) where T : IComparable<T>
+    {
+        if (first < 0)
+        {
+            throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
+        }
+        var count = list.Count;
+        if (last > count)
+        {
+            throw new ArgumentException($"last={last:N0} must not be higher than {count:N0}", nameof(last));
+        }
+        count = last - first;
+        while (count > 0)
+        {
+            var step = count / 2;
+            var i = first + step;
+            var arrayValue = list[i];
             var compareTo = value.CompareTo(arrayValue);
             if (compareTo >= 0)
             {

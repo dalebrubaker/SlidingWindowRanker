@@ -33,8 +33,7 @@ public class CollectionExtensionTests
         var result = list.GetLowerBound(3);
         Assert.Equal(2, result);
     }
-    
-    
+
     [Fact]
     public void GetLowerBound_ShouldReturnCorrectIndex_WhenElementExists()
     {
@@ -98,7 +97,7 @@ public class CollectionExtensionTests
         var result = list.GetUpperBound(3);
         Assert.Equal(3, result);
     }
-    
+
     [Fact]
     public void GetUpperBound_Array_ReturnsCorrectIndex()
     {
@@ -143,7 +142,7 @@ public class CollectionExtensionTests
     public void GetUpperBound_Array_Range()
     {
         int[] array = [1, 2, 2, 3, 4, 5];
-        var result = array.GetUpperBound(1, 4, 2);
+        var result = CollectionExtensions.GetUpperBound(array, 1, 4, 2);
         Assert.Equal(3, result);
     }
 
@@ -151,7 +150,7 @@ public class CollectionExtensionTests
     public void GetUpperBound_Array_Range_EmptyRange()
     {
         int[] array = [1, 2, 2, 3, 4, 5];
-        var result = array.GetUpperBound(2, 2, 2);
+        var result = CollectionExtensions.GetUpperBound(array, 2, 2, 2);
         Assert.Equal(2, result);
     }
 
@@ -159,7 +158,7 @@ public class CollectionExtensionTests
     public void GetUpperBound_Array_Range_InvalidRange()
     {
         int[] array = [1, 2, 2, 3, 4, 5];
-        Assert.Throws<ArgumentException>(() => array.GetUpperBound(-1, 2, 2));
-        Assert.Throws<ArgumentException>(() => array.GetUpperBound(2, 7, 2));
+        Assert.Throws<ArgumentException>(() => CollectionExtensions.GetUpperBound(array, -1, 2, 2));
+        Assert.Throws<ArgumentException>(() => CollectionExtensions.GetUpperBound(array, 2, 7, 2));
     }
 }

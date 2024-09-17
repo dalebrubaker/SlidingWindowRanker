@@ -1,5 +1,7 @@
-﻿using BenchmarkDotNet.Running;
+﻿using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Running;
 using Benchmarks;
 
-var config = new BenchmarkDotNet.Configs.DebugInProcessConfig();
-var summary = BenchmarkRunner.Run<BenchmarkGetLowerBound>(config);
+var config = new DebugInProcessConfig();
+//var summaryLowerBound = BenchmarkRunner.Run<BenchmarkGetLowerBound>();
+var summaryUpperBound = BenchmarkRunner.Run<BenchmarkGetUpperBound>();
