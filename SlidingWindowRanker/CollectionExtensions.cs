@@ -4,26 +4,37 @@ public static class CollectionExtensions
 {
     public static bool IsSortedAscending<T>(this IList<T> list) where T : IComparable<T>
     {
-        if (list.Count == 0) return true;
+        if (list.Count == 0)
+        {
+            return true;
+        }
         var prevItem = list[0];
         for (var i = 1; i < list.Count; i++)
         {
             var item = list[i];
-            if (item.CompareTo(prevItem) < 0) return false;
+            if (item.CompareTo(prevItem) < 0)
+            {
+                return false;
+            }
             prevItem = item;
         }
-D
         return true;
     }
 
     public static bool IsSortedDescending<T>(this IList<T> list) where T : IComparable<T>
     {
-        if (list.Count == 0) return true;
+        if (list.Count == 0)
+        {
+            return true;
+        }
         var prevItem = list[0];
         for (var i = 1; i < list.Count; i++)
         {
             var item = list[i];
-            if (item.CompareTo(prevItem) > 0) return false;
+            if (item.CompareTo(prevItem) > 0)
+            {
+                return false;
+            }
             prevItem = item;
         }
 
@@ -62,10 +73,15 @@ D
     /// </returns>
     public static int GetLowerBound<T>(this IList<T> array, int first, int last, T value) where T : IComparable<T>
     {
-        if (first < 0) throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
+        if (first < 0)
+        {
+            throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
+        }
         var count = array.Count;
         if (last > count)
+        {
             throw new ArgumentException($"last={last:N0} must not be higher than {count:N0}", nameof(last));
+        }
         count = last - first;
         while (count > 0)
         {
@@ -117,10 +133,15 @@ D
     /// </returns>
     public static int GetUpperBound<T>(this IList<T> array, int first, int last, T value) where T : IComparable<T>
     {
-        if (first < 0) throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
+        if (first < 0)
+        {
+            throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
+        }
         var count = array.Count;
         if (last > count)
+        {
             throw new ArgumentException($"last={last:N0} must not be higher than {count:N0}", nameof(last));
+        }
         count = last - first;
         while (count > 0)
         {
@@ -175,10 +196,15 @@ D
     /// </returns>
     public static int GetLowerBound<T>(this T[] array, int first, int last, T value) where T : IComparable<T>
     {
-        if (first < 0) throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
+        if (first < 0)
+        {
+            throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
+        }
         var count = array.Length;
         if (last > count)
+        {
             throw new ArgumentException($"last={last:N0} must not be higher than {count:N0}", nameof(last));
+        }
         count = last - first;
         while (count > 0)
         {
@@ -215,9 +241,13 @@ D
         {
             var mid = (first + last) / 2;
             if (array[mid].CompareTo(value) < 0)
+            {
                 first = mid + 1;
+            }
             else
+            {
                 last = mid;
+            }
         }
 
         return first;
@@ -253,10 +283,15 @@ D
     /// </returns>
     public static int GetUpperBound<T>(this T[] array, int first, int last, T value) where T : IComparable<T>
     {
-        if (first < 0) throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
+        if (first < 0)
+        {
+            throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
+        }
         var count = array.Length;
         if (last > count)
+        {
             throw new ArgumentException($"last={last:N0} must not be higher than {count:N0}", nameof(last));
+        }
         count = last - first;
         while (count > 0)
         {

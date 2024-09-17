@@ -2,7 +2,6 @@ namespace SlidingWindowRanker.Tests;
 
 public class CollectionExtensionTests
 {
-
     [Fact]
     public void IsSortedAscending_ShouldReturnTrue_ForEmptyList()
     {
