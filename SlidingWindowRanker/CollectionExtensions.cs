@@ -54,7 +54,7 @@ public static class CollectionExtensions
     /// </returns>
     public static int GetLowerBound<T>(this IList<T> array, T value) where T : IComparable<T>
     {
-        return GetLowerBound(array, 0, array.Count, value);
+        return array.GetLowerBound(0, array.Count, value);
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ public static class CollectionExtensions
     ///     (Count) if no such element is
     ///     found
     /// </returns>
-    public static int GetLowerBound<T>(this IList<T> array, int first, int last, T value) where T : IComparable<T>
+    public static int GetLowerBoundOriginal<T>(this IList<T> array, int first, int last, T value) where T : IComparable<T>
     {
         if (first < 0)
         {
@@ -227,30 +227,52 @@ public static class CollectionExtensions
     }
 
     /// <summary>
-    ///     From CoPilot
+    ///     From o1 Mini. CoPilot did it wrong.
+    ///     Finds the first index in the sorted list where the element is not less than the specified value.
     /// </summary>
-    /// <param name="array"></param>
-    /// <param name="value"></param>
-    /// <param name="first"></param>
-    /// <param name="last"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
-    public static int FindLowerBound<T>(T[] array, T value, int first, int last) where T : IComparable<T>
+    /// <typeparam name="T">Type of elements in the list. Must implement IComparable&lt;T&gt;.</typeparam>
+    /// <param name="list">The sorted list to search.</param>
+    /// <param name="first">The starting index of the search range (inclusive).</param>
+    /// <param name="last">The ending index of the search range (exclusive).</param>
+    /// <param name="value">The value to compare.</param>
+    /// <returns>
+    ///     The index of the first element that is not less than the specified value.
+    ///     If all elements are less, returns <paramref name="last" />.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown if the list is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     Thrown if first or last are out of range,
+    ///     or if first is greater than last.
+    /// </exception>
+    public static int GetLowerBound<T>(this IList<T> list, int first, int last, T value) where T : IComparable<T>
     {
-        while (first < last)
+        if (list == null)
         {
-            var mid = (first + last) / 2;
-            if (array[mid].CompareTo(value) < 0)
+            throw new ArgumentNullException(nameof(list));
+        }
+        if (first < 0 || first > list.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(first), "First index is out of range.");
+        }
+        if (last < first || last > list.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(last), "Last index is out of range.");
+        }
+        var low = first;
+        var high = last;
+        while (low < high)
+        {
+            var mid = low + (high - low) / 2;
+            if (list[mid].CompareTo(value) < 0)
             {
-                first = mid + 1;
+                low = mid + 1;
             }
             else
             {
-                last = mid;
+                high = mid;
             }
         }
-
-        return first;
+        return low;
     }
 
     /// <summary>
