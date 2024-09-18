@@ -1,6 +1,10 @@
-﻿namespace SlidingWindowRanker;
+﻿using System.Runtime.CompilerServices;
 
-public class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
+[assembly: InternalsVisibleTo("SlidingWindowRanker.Tests")]
+
+namespace SlidingWindowRanker;
+
+internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
 {
     public Partition(List<T> values)
     {
