@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionFolder", "SolutionF
 	ProjectSection(SolutionItems) = preProject
 		ReadMe.md = ReadMe.md
 		.github\workflows\ci.yml = .github\workflows\ci.yml
+		SlidingWindowRanker\20240917 o1 Mini conversation.pdf = SlidingWindowRanker\20240917 o1 Mini conversation.pdf
+		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "Benchmarks\Benchmarks.csproj", "{596DFA8D-BDA8-4C8F-9083-EC840C1D741D}"
