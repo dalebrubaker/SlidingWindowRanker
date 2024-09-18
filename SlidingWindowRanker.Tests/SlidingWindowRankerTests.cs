@@ -49,10 +49,10 @@ public class SlidingWindowRankerTests
     }
 
     [Fact]
-    public void GetRank_ThrowsException_ForEmptyInitialValues()
+    public void GetRank_ThrowsException_ForEmptyInitialValuesAndNoGivenWidt()
     {
         var initialValues = new List<int>();
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SlidingWindowRanker<int>(initialValues, 2));
+        Assert.Throws<ArgumentException>(() => new SlidingWindowRanker<int>(initialValues, 2));
     }
 
     [Fact]
@@ -62,6 +62,60 @@ public class SlidingWindowRankerTests
         Assert.Throws<ArgumentOutOfRangeException>(() => new SlidingWindowRanker<int>(initialValues, 0));
     }
 
-    // TODO Test when no values are available at the start
-    // TODO Test random values, ascending values and descending values
+    [Fact]
+    public void GetRank_ReturnsZero_ForEmptyInitialValues_WithWindowSizeOf10()
+    {
+        var initialValues = new List<int>();
+        var ranker = new SlidingWindowRanker<int>(initialValues, 1, 10);
+        var rank = ranker.GetRank(5);
+
+        // Since there are no initial values, the rank should be 0.0
+        Assert.Equal(0.0, rank);
+
+        var rank5 = ranker.GetRank(6);
+        var values = ranker.GetValues();
+        Assert.Equal([5, 6], values);
+        Assert.Equal(0.5, rank5);
+    }
+
+    [Fact]
+    public void GetRank_ReturnsCorrectRank_ForAscendingValues()
+    {
+        var initialValues = Enumerable.Range(1, 10).ToList();
+        var ranker = new SlidingWindowRanker<int>(initialValues, 2);
+        var rank = ranker.GetRank(5);
+
+        var expected = ExpectedRank(ranker, 5);
+        Assert.Equal(expected, rank);
+    }
+
+    [Fact]
+    public void GetRank_ReturnsCorrectRank_ForDescendingValues()
+    {
+        var initialValues = Enumerable.Range(1, 10).Reverse().ToList();
+        var ranker = new SlidingWindowRanker<int>(initialValues, 2);
+        var rank = ranker.GetRank(5);
+        var expected = ExpectedRank(ranker, 5);
+        Assert.Equal(expected, rank);
+    }
+
+    [Fact]
+    public void GetRank_ReturnsCorrectRank_ForRandomValues()
+    {
+        var initialValues = new List<int> { 3, 1, 4, 1, 5, 9, 2, 6, 5, 3 };
+        var ranker = new SlidingWindowRanker<int>(initialValues, 2);
+        var rank = ranker.GetRank(5);
+        var expected = ExpectedRank(ranker, 5);
+        Assert.Equal(expected, rank);
+    }
+
+    private double ExpectedRank(SlidingWindowRanker<int> ranker, int value)
+    {
+        var values = ranker.GetValues();
+        var isSortedAscending = values.IsSortedAscending();
+        Assert.True(isSortedAscending);
+        var lowerValuesCount = values.Count(v => v < value);
+        var rank = lowerValuesCount / (double)values.Count;
+        return rank;
+    }
 }

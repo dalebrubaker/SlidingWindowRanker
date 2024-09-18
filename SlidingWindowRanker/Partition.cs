@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("SlidingWindowRanker.Tests")]
 
@@ -30,6 +31,11 @@ internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
     /// </summary>
     public T LowestValue => Values.Count == 0 ? default : Values[0];
 
+    /// <summary>
+    /// Return the highest value in the partition or null if the partition is empty.
+    /// </summary>
+    public T HighestValue => Values.Count == 0 ? default : Values[^1];
+
     public int Count => Values.Count;
 
     /// <summary>
@@ -51,6 +57,7 @@ internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
     public void Remove(T value)
     {
         var index = Values.LowerBound(value);
+        Debug.Assert(Values[index].CompareTo(value) == 0); // There must always be a value to remove
         Values.RemoveAt(index);
     }
 
