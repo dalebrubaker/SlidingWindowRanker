@@ -1,6 +1,6 @@
 ﻿namespace SlidingWindowRanker;
 
-public class Partition<T> where T : IComparable<T>
+public class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
 {
     public Partition(List<T> values)
     {
@@ -10,16 +10,28 @@ public class Partition<T> where T : IComparable<T>
 
     public List<T> Values { get; }
 
+    /// <summary>
+    ///     This is the lower bound for the entire window of the lowest value in the partition.
+    ///     Every Add operation will reset this value for every partition that is affected by adding the new value
+    ///     and by removing the oldest queued value.
+    /// </summary>
+    public int LowerBound { get; set; }
+
     public T LowestValue => Values[0];
 
     public T HighestValue => Values[^1];
 
-    public bool IsEmpty => Values.Count == 0;
+    public int Count => Values.Count;
 
     /// <summary>
-    /// The partition needs splitting if it is has reached its capacity and the next Insert would cause it to grow.
+    ///     The partition needs splitting if it is has reached its capacity and the next Insert would cause it to grow.
     /// </summary>
     public bool NeedsSplitting => Values.Count == Values.Capacity;
+
+    public int CompareTo(Partition<T>? other)
+    {
+        return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
+    }
 
     public void Insert(T value)
     {
@@ -39,5 +51,11 @@ public class Partition<T> where T : IComparable<T>
         var rightPartition = new Partition<T>(rightValues);
         Values.RemoveRange(splitIndex, Values.Count - splitIndex);
         return rightPartition;
+    }
+
+    public int GetLowerBoundWithinPartition(T value)
+    {
+        var lowerBound = Values.LowerBound(value);
+        return lowerBound;
     }
 }

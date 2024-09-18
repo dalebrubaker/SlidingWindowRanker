@@ -45,20 +45,6 @@ public class PartitionTests
     }
 
     [Fact]
-    public void IsEmpty_ShouldReturnTrue_WhenNoValues()
-    {
-        // Arrange
-        var values = new List<int>();
-        var partition = new Partition<int>(values);
-
-        // Act
-        var isEmpty = partition.IsEmpty;
-
-        // Assert
-        Assert.True(isEmpty);
-    }
-
-    [Fact]
     public void NeedsSplitting_ShouldReturnTrue_WhenCapacityReached()
     {
         // Arrange
