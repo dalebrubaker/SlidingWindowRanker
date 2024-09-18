@@ -6,10 +6,14 @@ namespace SlidingWindowRanker;
 
 internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
 {
-    public Partition(List<T> values)
+    public Partition(List<T> values, int partitionSize = -1)
     {
+        if (partitionSize < 0)
+        {
+            partitionSize = values.Count;
+        }
         Values = values;
-        Values.Capacity = Math.Max(Values.Capacity, values.Count * 2); // Leave room to grow
+        Values.Capacity = Math.Max(Values.Capacity, partitionSize * 2); // Leave room to grow
     }
 
     public List<T> Values { get; }
@@ -21,18 +25,19 @@ internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
     /// </summary>
     public int LowerBound { get; set; }
 
-    public T LowestValue => Values[0];
-
-    public T HighestValue => Values[^1];
+    /// <summary>
+    /// Return the lowest value in the partition or null if the partition is empty.
+    /// </summary>
+    public T LowestValue => Values.Count == 0 ? default : Values[0];
 
     public int Count => Values.Count;
 
     /// <summary>
-    ///     The partition needs splitting if it is has reached its capacity and the next Insert would cause it to grow.
+    /// The partition needs splitting if it has reached its capacity and the next Insert would cause it to grow.
     /// </summary>
     public bool NeedsSplitting => Values.Count == Values.Capacity;
 
-    public int CompareTo(Partition<T>? other)
+    public int CompareTo(Partition<T> other)
     {
         return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
     }
@@ -61,5 +66,10 @@ internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
     {
         var lowerBound = Values.LowerBound(value);
         return lowerBound;
+    }
+
+    public override string ToString()
+    {
+        return $"#values={Values.Count:N0} LowerBound={LowerBound:N0}";
     }
 }

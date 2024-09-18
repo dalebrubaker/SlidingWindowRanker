@@ -10,20 +10,45 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
     private readonly Queue<T> _valueQueue;
 
     /// <summary>
+    /// The size of the window. Normally this is the same as the number of initial values,
+    /// but it can be set to a higher value if starting with little or no initial values.
+    /// </summary>
+    private readonly int _windowSize;
+
+    /// <summary>
     /// Initializes a new instance of the SlidingWindowRanker class.
     /// </summary>
     /// <param name="initialValues">The initial values to populate the sliding window.</param>
     /// <param name="partitionCount">The number of partitions to divide the values into.</param>
-    public SlidingWindowRanker(List<T> initialValues, int partitionCount)
+    /// <param name="windowSize">Default -1 means to use initialValues.Count. Must be no smaller than initialValues</param>
+    public SlidingWindowRanker(List<T> initialValues, int partitionCount, int windowSize = -1)
     {
+        if (windowSize < 0)
+        {
+            windowSize = initialValues.Count;
+        }
+        _windowSize = windowSize;
+        if (initialValues.Count == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(initialValues), "The number of initial values must be greater than 0.");
+        }
+        if (partitionCount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(partitionCount), "The number of partitions must be greater than 0.");
+        }
         _valueQueue = new Queue<T>(initialValues);
-        var valuesPerPartition = initialValues.Count / partitionCount;
+        var valuesPerPartition = _windowSize / partitionCount;
         for (var i = 0; i < partitionCount; i++)
         {
             var startIndex = i * valuesPerPartition;
-            var count = Math.Max(valuesPerPartition, initialValues.Count - startIndex);
-            var partitionValues = initialValues.GetRange(startIndex, count);
-            var partition = new Partition<T>(partitionValues)
+            var valuesPerPartitionCount = initialValues.Count / partitionCount;
+            if (i == partitionCount - 1)
+            {
+                // The last partition gets the remaining values
+                valuesPerPartitionCount += initialValues.Count % partitionCount;
+            }
+            var partitionValues = initialValues.GetRange(startIndex, valuesPerPartitionCount);
+            var partition = new Partition<T>(partitionValues, _windowSize / partitionCount)
             {
                 LowerBound = startIndex
             };
@@ -47,23 +72,39 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
     public double GetRank(T value)
     {
         // Returns the fraction of values in the window that are Less Than to the specified value.
-        var removeValue = _valueQueue.Dequeue();
         _valueQueue.Enqueue(value);
-        var (partitionForInsert, positionIndexForInsert) = FindPartitionContaining(value);
+        int positionIndexForInsert;
+        Partition<T> partitionForInsert;
+        if (value.CompareTo(_partitions[^1].LowestValue) >= 0)
+        {
+            // Add the value to the end of the last partition
+            positionIndexForInsert = _partitions.Count - 1;
+            partitionForInsert = _partitions[positionIndexForInsert];
+        }
+        else
+        {
+            (partitionForInsert, positionIndexForInsert) = FindPartitionContaining(value);
+        }
         var lowerBoundOwWithinPartition = partitionForInsert.GetLowerBoundWithinPartition(value);
         var lowerBound = partitionForInsert.LowerBound + lowerBoundOwWithinPartition;
-        var lowerBoundAfterRemove = lowerBound;
+        if (_valueQueue.Count < _windowSize)
+        {
+            // We are still filling the window, so we don't need to remove any values yet
+            // Now we already know the result, so we could later have a different thread modify the partitions
+            DoInsert(value, positionIndexForInsert, partitionForInsert);
+            return (double)lowerBound / _valueQueue.Count;
+        }
+
+        var removeValue = _valueQueue.Dequeue();
         if (removeValue.CompareTo(value) < 0)
         {
             // After we do the insert and remove, the lower bound will be one less
-            lowerBoundAfterRemove--;
+            lowerBound--;
         }
-        var result = (double)lowerBoundAfterRemove / _valueQueue.Count;
+        var result = (double)lowerBound / _valueQueue.Count;
 
         // Now we already know the result, so we could later have a different thread modify the partitions
-
         DoInsertAndRemove(value, removeValue, positionIndexForInsert, partitionForInsert);
-
         return result;
     }
 
@@ -121,6 +162,10 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
                 positionIndexForInsert--;
             }
         }
+        else
+        {
+            partitionForRemove.Remove(removeValue);
+        }
         return positionIndexForInsert;
     }
 
@@ -131,37 +176,25 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
     /// <returns>A tuple containing the partition and its index.</returns>
     private (Partition<T> partition, int partitionIndex) FindPartitionContaining(T value)
     {
-        var partitionIndex = FindPartitionIndex(value);
-        if (partitionIndex < 0 || partitionIndex >= _partitions.Count)
-        {
-            throw new SlidingWindowRankerException($"partitionIndex={partitionIndex} is out of range.");
-        }
+        var lowestValues = _partitions
+            .Select(p => p.LowestValue)
+            .ToList();
+        var partitionIndex = lowestValues.LowerBound(value);
         var partition = _partitions[partitionIndex];
         return (partition, partitionIndex);
     }
 
     /// <summary>
-    /// Finds the index of the partition that should contain the specified value.
+    /// For debugging, return the values in all partitions.
     /// </summary>
-    /// <param name="value">The value to find the partition index for.</param>
-    /// <returns>The index of the partition that should contain the value, or -1 if no suitable partition is found.</returns>
-    private int FindPartitionIndex(T value)
+    /// <returns></returns>
+    internal List<T> GetValues()
     {
-        var low = 0;
-        var high = _partitions.Count - 1;
-        while (low < high)
-        {
-            var mid = low + ((high - low) >> 1);
-            var partition = _partitions[mid];
-            if (partition.LowerBound.CompareTo(value) < 0)
-            {
-                low = mid + 1;
-            }
-            else
-            {
-                high = mid;
-            }
-        }
-        return low;
+        return _partitions.SelectMany(p => p.Values).ToList();
+    }
+
+    public override string ToString()
+    {
+        return $"#values={_valueQueue.Count:N0}, #partitions={_partitions.Count} _windowSize={_windowSize:N0}";
     }
 }

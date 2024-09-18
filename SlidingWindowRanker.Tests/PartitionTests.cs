@@ -17,34 +17,6 @@ public class PartitionTests
     }
 
     [Fact]
-    public void LowestValue_ShouldReturnFirstValue()
-    {
-        // Arrange
-        var values = new List<int> { 1, 2, 3 };
-        var partition = new Partition<int>(values);
-
-        // Act
-        var lowestValue = partition.LowestValue;
-
-        // Assert
-        Assert.Equal(1, lowestValue);
-    }
-
-    [Fact]
-    public void HighestValue_ShouldReturnLastValue()
-    {
-        // Arrange
-        var values = new List<int> { 1, 2, 3 };
-        var partition = new Partition<int>(values);
-
-        // Act
-        var highestValue = partition.HighestValue;
-
-        // Assert
-        Assert.Equal(3, highestValue);
-    }
-
-    [Fact]
     public void NeedsSplitting_ShouldReturnTrue_WhenCapacityReached()
     {
         // Arrange
