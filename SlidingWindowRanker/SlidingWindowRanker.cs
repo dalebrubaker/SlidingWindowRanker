@@ -2,23 +2,28 @@
 
 public class SlidingWindowRanker<T> where T : IComparable<T>
 {
+    private readonly List<Partition<T>> _partitions = [];
+    private readonly Queue<T> _valueQueue;
     private readonly int _windowSize;
-    private readonly int _maxPartitionSize;
-    private readonly List<Partition<T>> _partitions;
-    private readonly Queue<(T value, Partition<T> partition)> _valueQueue;
 
-    public SlidingWindowRanker(int windowSize, int maxPartitionSize)
+    public SlidingWindowRanker(List<T> initialValues, int partitionCount)
     {
-        _windowSize = windowSize;
-        _maxPartitionSize = maxPartitionSize;
-        _partitions = new List<Partition<T>>();
-        _valueQueue = new Queue<(T value, Partition<T> partition)>(windowSize);
+        _windowSize = initialValues.Count;
+        _valueQueue = new Queue<T>(initialValues);
+        var valuesPerPartition = initialValues.Count / partitionCount;
+        for (var i = 0; i < partitionCount; i++)
+        {
+            var startIndex = i * valuesPerPartition;
+            var count = Math.Max(valuesPerPartition, initialValues.Count - startIndex);
+            var partitionValues = initialValues.GetRange(startIndex, count);
+            _partitions.Add(new Partition<T>(partitionValues));
+        }
     }
 
     public void Add(T value)
     {
         // Step 1: Find the target partition
-        int partitionIndex = FindPartitionIndex(value);
+        var partitionIndex = FindPartitionIndex(value);
         Partition<T> partition;
         if (partitionIndex == -1)
         {
@@ -33,7 +38,7 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
             // Step 3: Split partition if necessary
             if (partition.NeedsSplitting)
             {
-                int splitIndex = partition.Values.LowerBound(0, partition.Values.Count, value);
+                var splitIndex = partition.Values.LowerBound(0, partition.Values.Count, value);
                 var rightPartition = partition.Split(splitIndex);
                 _partitions.RemoveAt(partitionIndex);
                 _partitions.Insert(partitionIndex, partition);
@@ -43,27 +48,27 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
             }
         }
         // Step 2: Record in the queue
-        _valueQueue.Enqueue((value, partition));
+        _valueQueue.Enqueue(value);
         // Step 4: Maintain window size
         if (_valueQueue.Count > _windowSize)
         {
-            var (oldValue, oldPartition) = _valueQueue.Dequeue();
-            oldPartition.Remove(oldValue);
-            // Remove empty partitions
-            if (oldPartition.IsEmpty)
-            {
-                _partitions.Remove(oldPartition);
-            }
+            var oldValue = _valueQueue.Dequeue();
+            // oldPartition.Remove(oldValue);
+            // // Remove empty partitions
+            // if (oldPartition.IsEmpty)
+            // {
+            //     _partitions.Remove(oldPartition);
+            // }
         }
     }
 
     private int FindPartitionIndex(T value)
     {
-        int low = 0;
-        int high = _partitions.Count - 1;
+        var low = 0;
+        var high = _partitions.Count - 1;
         while (low <= high)
         {
-            int mid = low + ((high - low) >> 1);
+            var mid = low + ((high - low) >> 1);
             var partition = _partitions[mid];
             if (value.CompareTo(partition.LowestValue) < 0)
             {
