@@ -30,6 +30,7 @@ public class BenchmarkSlidingWindowRanker
         for (var i = 0; i < NumberOfTestValues; i++)
         {
             var value = random.NextDouble() * 100;
+            value = Math.Round(value, 1); // for easier debugging
             _valuesToRank.Add(value);
         }
         var initialValues = _valuesToRank.Take(WindowSize).ToList();

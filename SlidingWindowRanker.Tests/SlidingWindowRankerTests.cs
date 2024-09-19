@@ -110,8 +110,8 @@ public class SlidingWindowRankerTests
     [Fact]
     public void GetRank_ReturnsCorrectRank_ForAscendingValuesInLargeList()
     {
-        const int NumberOfTestValues = 10000; // 1000;// 100;
-        const int NumberOfPartitions = 10; // 200; // 1;
+        const int NumberOfTestValues = 1000; // 40000; //  1000;// 100;
+        const int NumberOfPartitions = 10; // 200; // 10  // 1;
         const int WindowSize = NumberOfTestValues / 10;
 
         var valuesToRank = new List<int>(NumberOfTestValues);

@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("SlidingWindowRanker.Tests")]
 
@@ -65,7 +64,11 @@ internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
     public int Remove(T value)
     {
         var index = Values.LowerBound(value);
-        Debug.Assert(Values[index].CompareTo(value) == 0); // There must always be a value to remove
+        var existingValue = Values[index];
+        if (existingValue.CompareTo(value) != 0)
+        {
+            throw new SlidingWindowRankerException("The value to remove was not found in the partition.");
+        }
         Values.RemoveAt(index);
         return index;
     }
