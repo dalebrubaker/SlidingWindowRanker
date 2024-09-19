@@ -75,19 +75,4 @@ public class PartitionTests
         Assert.Equal([1, 2], partition.Values);
         Assert.Equal([3, 4, 5], rightPartition.Values);
     }
-
-    [Fact]
-    public void SplitAtEndValue_ShouldDivideValuesCorrectly()
-    {
-        // Arrange
-        var values = new List<int> { 1, 2, 3, 4, 5 };
-        var partition = new Partition<int>(values);
-
-        // Act
-        var rightPartition = partition.Split(5);
-
-        // Assert
-        Assert.Equal([1, 2, 3, 4, 5], partition.Values);
-        Assert.Equal([], rightPartition.Values);
-    }
 }

@@ -7,14 +7,21 @@ namespace SlidingWindowRanker;
 
 internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
 {
+    private readonly int _partitionSize;
+
     public Partition(List<T> values, int partitionSize = -1)
     {
-        if (partitionSize < 0)
+        _partitionSize = partitionSize;
+        if (_partitionSize < 0)
         {
-            partitionSize = values.Count;
+            _partitionSize = values.Count;
+        }
+        if (_partitionSize == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(_partitionSize), "The partition size must be greater than 0.");
         }
         Values = values;
-        Values.Capacity = Math.Max(Values.Capacity, partitionSize * 2); // Leave room to grow
+        Values.Capacity = Math.Max(Values.Capacity, _partitionSize * 2); // Leave room to grow
     }
 
     public List<T> Values { get; }
@@ -48,23 +55,25 @@ internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
         return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
     }
 
-    public void Insert(T value)
+    public int Insert(T value)
     {
         var index = Values.LowerBound(value);
         Values.Insert(index, value);
+        return index;
     }
 
-    public void Remove(T value)
+    public int Remove(T value)
     {
         var index = Values.LowerBound(value);
         Debug.Assert(Values[index].CompareTo(value) == 0); // There must always be a value to remove
         Values.RemoveAt(index);
+        return index;
     }
 
     public Partition<T> Split(int splitIndex)
     {
         var rightValues = Values.GetRange(splitIndex, Values.Count - splitIndex);
-        var rightPartition = new Partition<T>(rightValues);
+        var rightPartition = new Partition<T>(rightValues, _partitionSize);
         Values.RemoveRange(splitIndex, Values.Count - splitIndex);
         return rightPartition;
     }

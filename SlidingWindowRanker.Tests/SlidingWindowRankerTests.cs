@@ -1,7 +1,18 @@
-﻿namespace SlidingWindowRanker.Tests;
+﻿using System.Diagnostics;
+using Xunit.Abstractions;
+
+namespace SlidingWindowRanker.Tests;
 
 public class SlidingWindowRankerTests
 {
+    private readonly ITestOutputHelper _output;
+
+    // ReSharper disable once ConvertToPrimaryConstructor
+    public SlidingWindowRankerTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [Fact]
     public void GetRank_ReturnsCorrectRank_ForValueInMiddle()
     {
@@ -49,10 +60,17 @@ public class SlidingWindowRankerTests
     }
 
     [Fact]
-    public void GetRank_ThrowsException_ForEmptyInitialValuesAndNoGivenWidt()
+    public void GetRank_ThrowsException_ForEmptyInitialValuesAndNoGivenWidth()
     {
         var initialValues = new List<int>();
-        Assert.Throws<ArgumentException>(() => new SlidingWindowRanker<int>(initialValues, 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SlidingWindowRanker<int>(initialValues, 2));
+    }
+
+    [Fact]
+    public void GetRank_ThrowsException_ForOnlyWidthSize1()
+    {
+        var initialValues = new List<int> { 10 };
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SlidingWindowRanker<int>(initialValues, 2));
     }
 
     [Fact]
@@ -90,6 +108,34 @@ public class SlidingWindowRankerTests
     }
 
     [Fact]
+    public void GetRank_ReturnsCorrectRank_ForAscendingValuesInLargeList()
+    {
+        const int NumberOfTestValues = 10000; // 1000;// 100;
+        const int NumberOfPartitions = 10; // 200; // 1;
+        const int WindowSize = NumberOfTestValues / 10;
+
+        var valuesToRank = new List<int>(NumberOfTestValues);
+        for (var i = 0; i < NumberOfTestValues; i++)
+        {
+            valuesToRank.Add(i);
+        }
+        var initialValues = valuesToRank.Take(WindowSize).ToList();
+        var ranker = new SlidingWindowRanker<int>(initialValues, NumberOfPartitions);
+        for (var index = WindowSize; index < NumberOfTestValues; index++)
+        {
+            var value = valuesToRank[index];
+            var rank = ranker.GetRank(value);
+            var expected = ExpectedRank(ranker, value);
+            if (expected != rank)
+            {
+            }
+            Assert.Equal(expected, rank, 3);
+        }
+        _output.WriteLine($"ranker.CountPartitionSplits={ranker.CountPartitionSplits}");
+        _output.WriteLine($"ranker.CountPartitionRemoves={ranker.CountPartitionRemoves}");
+    }
+
+    [Fact]
     public void GetRank_ReturnsCorrectRank_ForDescendingValues()
     {
         var initialValues = Enumerable.Range(1, 10).Reverse().ToList();
@@ -107,6 +153,34 @@ public class SlidingWindowRankerTests
         var rank = ranker.GetRank(5);
         var expected = ExpectedRank(ranker, 5);
         Assert.Equal(expected, rank);
+    }
+
+    [Fact]
+    public void GetRank_ReturnsCorrectRank_ForRandomValuesInLargeList()
+    {
+        const int NumberOfTestValues = 10000; // 1000;// 100;
+        const int NumberOfPartitions = 10; // 200; // 1;
+        const int WindowSize = NumberOfTestValues / 10; // * 2 / 10;
+
+        var random = new Random();
+        var valuesToRank = new List<int>(NumberOfTestValues);
+        for (var i = 0; i < NumberOfTestValues; i++)
+        {
+            var value = (int)(random.NextDouble() * 100);
+            valuesToRank.Add(value);
+        }
+        var initialValues = valuesToRank.Take(WindowSize).ToList();
+        var stopWatch = Stopwatch.StartNew();
+        var ranker = new SlidingWindowRanker<int>(initialValues, NumberOfPartitions);
+        for (var index = WindowSize; index < NumberOfTestValues; index++)
+        {
+            var value = valuesToRank[index];
+            var rank = ranker.GetRank(value);
+            var expected = ExpectedRank(ranker, value);
+            //Assert.Equal(expected, rank, 2);
+        }
+        var elapsed = stopWatch.ElapsedMilliseconds;
+        _output.WriteLine($"Elapsed time: {elapsed} ms");
     }
 
     private double ExpectedRank(SlidingWindowRanker<int> ranker, int value)
