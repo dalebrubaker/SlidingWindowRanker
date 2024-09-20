@@ -10,6 +10,7 @@ namespace Benchmarks;
 [RankColumn]
 public class BenchmarkSlidingWindowRanker
 {
+    private static string s_ValuesToRankStr;
     private SlidingWindowRanker<double> _ranker;
     private List<double> _valuesToRank;
 
@@ -33,6 +34,7 @@ public class BenchmarkSlidingWindowRanker
             value = Math.Round(value, 1); // for easier debugging
             _valuesToRank.Add(value);
         }
+        s_ValuesToRankStr = string.Join(',', _valuesToRank);
         var initialValues = _valuesToRank.Take(WindowSize).ToList();
         _ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
     }
