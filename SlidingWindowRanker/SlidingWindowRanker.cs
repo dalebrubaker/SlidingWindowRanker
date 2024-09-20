@@ -1,13 +1,20 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("SlidingWindowRanker.Tests")]
 
 namespace SlidingWindowRanker;
 
-public class SlidingWindowRanker<T> where T : IComparable<T>
+/// <summary>
+/// Partial class so we can do Unit Testing on private methods in th test project
+/// </summary>
+/// <typeparam name="T"></typeparam>
+public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
     private readonly List<Partition<T>> _partitions = [];
 
     /// <summary>
-    /// The queue of all values so we know which one to remove at the left side of the window.
+    /// The queue of all values so we know which one to remove at the left edge of the window.
     /// They are NOT sorted. They are in the order in which they were added.
     /// </summary>
     private readonly Queue<T> _valueQueue;
@@ -21,25 +28,17 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
     /// <summary>
     /// The index  in the partition where we did <see cref="DoInsert"/> at which we inserted a new value,
     /// or null if no value was inserted
+    /// This is determined during <see cref="CalculateRankBeforeDoingInsertAndRemove"/>
+    /// and saved for the later <see cref="DoInsert"/> 
     /// </summary>
-    private int? _indexInPartitionForInsert;
-
-    /// <summary>
-    /// The index in the partition where we did  <see cref="DoRemove"/> at which we removed an old value,
-    /// or null if no value was removed
-    /// </summary>
-    private int? _indexInPartitionForRemove;
-
-    /// <summary>
-    /// The index within the partition where _valueToInsert will be inserted.
-    /// We calculate this early in GetRank() so we can later have a different thread or threads do the insert and/or remove
-    /// </summary>
-    private int _lowerBoundWithinInsertPartition;
+    private int _indexWithinPartitionForInsert;
 
     private Partition<T> _partitionForInsert;
     private int _partitionForInsertIndex;
     private Partition<T> _partitionForRemove;
-    private int _partitionForRemoveIndex;
+    
+    private int _beginIndexForLowerBoundInsertIncrements;
+    private int _beginIndexForLowerBoundRemoveDecrements;
 
     /// <summary>
     /// _valueToInsert is cached so a future implementation could have a different thread do the insert
@@ -66,10 +65,10 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
             windowSize = initialValues.Count;
         }
         _windowSize = windowSize;
-        if (_windowSize <= 1)
+        if (_windowSize <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(windowSize),
-                "The window size must be greater than 1, in order to have values to rank against.");
+                "The window size must be greater than 0, in order to have values to rank against.");
         }
         if (partitionCount <= 0)
         {
@@ -81,18 +80,26 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
         // But be friendly to the caller, so sort a new list and leave the given list unchanged
         var values = new List<T>(initialValues);
         values.Sort();
-        var valuesPerPartition = _windowSize / partitionCount;
+
+        int partitionSize;
+        if (_windowSize % 2 == 0)
+        {
+            // An even number of values in the window
+            partitionSize = _windowSize / partitionCount;
+        }
+        else
+        {
+            // Add 1 to _windowSize so we can round up on the integer division. E.g. 5 values and 3 partitions
+            // should have values per partition of [2, 2, 1] not [1, 1, 1]
+            partitionSize = (_windowSize + 1) / partitionCount;
+        }
         for (var i = 0; i < partitionCount; i++)
         {
-            var startIndex = i * valuesPerPartition;
-            var valuesPerPartitionCount = values.Count / partitionCount;
-            if (i == partitionCount - 1)
-            {
-                // The last partition gets the remaining values
-                valuesPerPartitionCount += values.Count % partitionCount;
-            }
-            var partitionValues = values.GetRange(startIndex, valuesPerPartitionCount);
-            var partition = new Partition<T>(partitionValues, _windowSize / partitionCount)
+            var startIndex = i * partitionSize;
+            // Last partition gets the remaining values
+            var getRangeCount = i == partitionCount - 1 ? values.Count - startIndex : partitionSize;
+            var partitionValues = values.GetRange(startIndex, getRangeCount);
+            var partition = new Partition<T>(partitionValues, partitionSize)
             {
                 LowerBound = startIndex
             };
@@ -115,10 +122,8 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
     ///
     /// The given value given is added to the right side of the window and the oldest value is removed from the left side
     /// of the window. The result is what would be calculated based on the values in the window AFTER the add/remove.
-    /// But we cheat a bit and determine the result before we do the add/remove so we can later have a different thread
-    /// or threads do the insert and/or remove.
-    /// Also, we do not much work if the given value is the same one that comes out of the window.
-    ///  
+    /// But we determine the result BEFORE we do the add/remove so we can later have a different thread
+    /// or threads do the insert and/or remove. Finally, we adjust the partition LowerBound values to reflect the insert and remove.
     /// </summary>
     /// <param name="value">The value to calculate the Rank for.</param>
     /// <returns>The fraction of values in the window that are less than the specified value.</returns>
@@ -129,15 +134,15 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
         _valueToInsert = value;
         _partitionForInsert = null;
         _partitionForRemove = null;
-        _indexInPartitionForInsert = null;
-        _indexInPartitionForRemove = null;
+        _beginIndexForLowerBoundInsertIncrements = int.MaxValue; // No value yet
+        _beginIndexForLowerBoundRemoveDecrements = int.MaxValue; // No value yet
+
+        _indexWithinPartitionForInsert = int.MinValue; // a bad value so we throw if it never gets set
         var rank = CalculateRankBeforeDoingInsertAndRemove();
-        if (!IsQueueFull || _valueToInsert.CompareTo(_valueToRemove) != 0)
-        {
-            // If the value we are inserting is the same as the value we are removing, we don't need to do anything more
-            DoInsertAndRemove();
-            AdjustPartitionsLowerBounds();
-        }
+        Debug.Assert(_indexWithinPartitionForInsert != int.MinValue, "Must set _indexInPartitionForInsert before calling DoInsert");
+        DoInsert();
+        DoRemove();
+        AdjustPartitionsLowerBounds();
         return rank;
     }
 
@@ -157,6 +162,7 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
             {
                 // No matter what happens, a lower value will be removed and _valueToInsert will be added at the end, so we know the result without doing more work
                 var result = (_valueQueue.Count - 1) / (double)_valueQueue.Count;
+                _indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
                 return result;
             }
         }
@@ -164,8 +170,8 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
         {
             (_partitionForInsert, _partitionForInsertIndex) = FindPartitionContaining(_valueToInsert);
         }
-        _lowerBoundWithinInsertPartition = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
-        var lowerBound = _partitionForInsert.LowerBound + _lowerBoundWithinInsertPartition;
+        _indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
+        var lowerBound = _partitionForInsert.LowerBound + _indexWithinPartitionForInsert;
         if (IsQueueFull && _valueToRemove?.CompareTo(_valueToInsert) < 0)
         {
             // After we do the insert and remove, the lower bound will be one less
@@ -186,71 +192,26 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
     private void AdjustPartitionsLowerBounds()
     {
         DebugGuardIsLowerBoundAscending();
-#if DEBUG
-        if (_partitions[0].LowerBound != 0)
+        var startIndex = Math.Min(_beginIndexForLowerBoundInsertIncrements, _beginIndexForLowerBoundRemoveDecrements);
+        for (var i = startIndex; i < _partitions.Count; i++)
         {
-            throw new SlidingWindowRankerException("The LowerBound of the first partition is not 0.");
-        }
-#endif
-        for (var i = _partitionForInsertIndex + 1; i < _partitions.Count; i++)
-        {
-            // An insert causes the LowerBound of all partitions to the right to be incremented
-            _partitions[i].LowerBound++;
-            ;
-        }
-        if (_partitionForRemove != null)
-        {
-            for (var i = _partitionForRemoveIndex + 1; i < _partitions.Count; i++)
+            var netChange = 0;
+            if (i >= _beginIndexForLowerBoundInsertIncrements)
             {
-                // A remove causes the LowerBound of all partitions to the right to be decremented
-                _partitions[i].LowerBound--;
+                netChange++;
             }
+            if (i >= _beginIndexForLowerBoundRemoveDecrements)
+            {
+                netChange--;
+            }
+            if (netChange == 0)
+            {
+                // From here on there will be no net change
+                break;
+            }
+            _partitions[i].LowerBound += netChange;
         }
-        DebugGuardIsLowerBoundAscending();
         DebugGuardPartitionLowerBoundValuesAreCorrect();
-    }
-
-    /// <summary>
-    /// if DEBUG, verify that the LowerBounds are correct
-    /// </summary>
-    /// <exception cref="SlidingWindowRankerException"></exception>
-    private void DebugGuardPartitionLowerBoundValuesAreCorrect()
-    {
-#if DEBUG
-        if (_partitions[0].LowerBound != 0)
-        {
-            throw new SlidingWindowRankerException("The LowerBound of the first partition is not 0.");
-        }
-
-        for (var i = 1; i < _partitions.Count; i++)
-        {
-            var partition = _partitions[i];
-            var priorPartition = _partitions[i - 1];
-            if (partition.LowerBound != priorPartition.LowerBound + priorPartition.Count)
-            {
-                throw new SlidingWindowRankerException($"The LowerBound of partition={i} is not correct.");
-            }
-        }
-#endif
-    }
-
-    /// <summary>
-    /// Inserts a new value and removes an old value from the partitions.
-    /// The partition holding removeValue will be removed when it is empty.
-    /// The partition holding value will be split if it is full (meaning it has reached its capacity).
-    /// The capacity of a partition is double the initial count of values in the partition.
-    /// </summary>
-    private void DoInsertAndRemove()
-    {
-        if (!IsQueueFull)
-        {
-            // We are still filling the window, so we don't need to remove any values yet
-            // Now we already know the result, so we could later have a different thread modify the partitions
-            DoInsert();
-            return;
-        }
-        DoRemove();
-        DoInsert();
     }
 
     /// <summary>
@@ -262,34 +223,41 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
     {
         if (_partitionForInsert.NeedsSplitting)
         {
-            SplitPartition();
+            SplitPartitionAndDoInsert();
         }
         else
         {
-            _indexInPartitionForInsert = _partitionForInsert.Insert(_valueToInsert); // An O(1) operation because we are adding to the end of the list
+            _indexWithinPartitionForInsert = _partitionForInsert.Insert(_valueToInsert);
         }
+        _partitionForInsert = null; // no longer needed
+        _indexWithinPartitionForInsert = int.MinValue; // no longer valid
+        _beginIndexForLowerBoundInsertIncrements = _partitionForInsertIndex + 1;
+        _partitionForInsertIndex = int.MinValue; // no longer valid
     }
 
-    private void SplitPartition()
+    private void SplitPartitionAndDoInsert()
     {
         CountPartitionSplits++;
-        _indexInPartitionForInsert = _partitionForInsert.Values.LowerBound(_valueToInsert);
-        var rightPartition = _partitionForInsert.Split(_indexInPartitionForInsert.Value);
-        rightPartition.LowerBound = _partitionForInsert.LowerBound + _partitionForInsert.Count;
+        var rightPartition = _partitionForInsert.SplitAndInsert(_valueToInsert, _indexWithinPartitionForInsert);
         _partitions.Insert(_partitionForInsertIndex + 1, rightPartition);
-        _partitionForInsert = rightPartition;
-        _indexInPartitionForInsert = _partitionForInsert.Insert(_valueToInsert); // An O(1) operation because we are adding to an empty list
+        rightPartition.LowerBound = _partitionForInsert.LowerBound + _partitionForInsert.Count;
         _partitionForInsertIndex++;
     }
 
     /// <summary>
     /// Removes a value from the partitions.
     /// The partition holding _valueToRemove will be removed when is emptied.
-    /// </summary>
+    /// </summary> 
     private void DoRemove()
     {
+        if (!IsQueueFull)
+        {
+            // We don't start removing values until the queue is full
+            _beginIndexForLowerBoundRemoveDecrements = int.MaxValue; // No decrements needed
+            return;
+        }
         Debug.Assert(_valueToRemove != null);
-        (_partitionForRemove, _partitionForRemoveIndex) = FindPartitionContaining(_valueToRemove);
+        (_partitionForRemove, var partitionForRemoveIndex) = FindPartitionContaining(_valueToRemove);
         if (_valueToRemove.CompareTo(_partitionForRemove.HighestValue) > 0)
         {
             throw new SlidingWindowRankerException("The value to remove above the HighestValue in the window.");
@@ -300,36 +268,26 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
         }
         if (_partitionForRemove.Count == 1)
         {
-            RemovePartition();
+            RemovePartition(partitionForRemoveIndex);
         }
         else
         {
-            _indexInPartitionForRemove = _partitionForRemove.Remove(_valueToRemove);
+            _partitionForRemove.Remove(_valueToRemove);
+
+            // Decrement LowerBound for all partitions to the right of the partition holding the removed value
+            _beginIndexForLowerBoundRemoveDecrements = partitionForRemoveIndex + 1;
         }
     }
 
-    private void RemovePartition()
+    private void RemovePartition(int partitionForRemoveIndex)
     {
         // Remove the partition if it only contains the value we are removing
-        if (_partitionForRemoveIndex + 1 < _partitions.Count)
-        {
-            var nextPartition = _partitions[_partitionForRemoveIndex + 1];
-            nextPartition.LowerBound = _partitionForRemove.LowerBound;
-        }
         _partitions.Remove(_partitionForRemove);
         CountPartitionRemoves++;
 
-        // The AdjustPartitionsLowerBounds() doesn't handle the case where we remove a partition
-        for (var i = _partitionForRemoveIndex + 1; i < _partitions.Count; i++)
-        {
-            // A remove causes the LowerBound of all partitions to the right to be decremented
-            _partitions[i].LowerBound--;
-        }
-        _partitionForRemove = null;
-        _partitionForRemoveIndex = -1;
+        // We removed this partition, so decrement starting at this index
+        _beginIndexForLowerBoundRemoveDecrements = partitionForRemoveIndex;
     }
-
-    // /// <summary>
 
     /// <summary>
     /// Finds the partition containing the specified value.
@@ -347,18 +305,6 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
         }
         var partition = _partitions[partitionIndex];
         return (partition, partitionIndex);
-    }
-
-    private void DebugGuardIsLowerBoundAscending()
-    {
-#if DEBUG
-        var lowerBoundsList = _partitions.Select(p => p.LowerBound).ToList();
-        var isSortedAscending = lowerBoundsList.IsSortedAscending();
-        if (!isSortedAscending)
-        {
-            throw new SlidingWindowRankerException("The LowerBounds of the partitions are not sorted ascending.");
-        }
-#endif
     }
 
     private int LowerBound(T value)
@@ -379,15 +325,6 @@ public class SlidingWindowRanker<T> where T : IComparable<T>
             }
         }
         return low;
-    }
-
-    /// <summary>
-    /// For debugging, return the values in all partitions.
-    /// </summary>
-    /// <returns></returns>
-    internal List<T> GetValues()
-    {
-        return _partitions.SelectMany(p => p.Values).ToList();
     }
 
     public override string ToString()

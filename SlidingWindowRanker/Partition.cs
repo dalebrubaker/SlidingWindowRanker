@@ -1,10 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿namespace SlidingWindowRanker;
 
-[assembly: InternalsVisibleTo("SlidingWindowRanker.Tests")]
-
-namespace SlidingWindowRanker;
-
-internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
+internal partial class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
 {
     private readonly int _partitionSize;
 
@@ -73,11 +69,25 @@ internal class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
         return index;
     }
 
-    public Partition<T> Split(int splitIndex)
+    public Partition<T> SplitAndInsert(T valueToInsert, int splitIndex)
     {
-        var rightValues = Values.GetRange(splitIndex, Values.Count - splitIndex);
+        List<T> rightValues;
+        if (splitIndex == Values.Count)
+        {
+            rightValues = [valueToInsert];
+        }
+        else
+        {
+            rightValues = Values.GetRange(splitIndex, Values.Count - splitIndex);
+            Values.RemoveRange(splitIndex, Values.Count - splitIndex);
+            Values.Insert(splitIndex, valueToInsert);
+        }
+
+        // Leave room to grow. But note that for small partitions,
+        // rightValues.Capacity may be a minimum of 4 here because of List.DefaultCapacity
+        rightValues.Capacity = _partitionSize * 2; // Leave room to grow
+
         var rightPartition = new Partition<T>(rightValues, _partitionSize);
-        Values.RemoveRange(splitIndex, Values.Count - splitIndex);
         return rightPartition;
     }
 

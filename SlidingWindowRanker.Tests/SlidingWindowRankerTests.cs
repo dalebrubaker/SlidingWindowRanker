@@ -67,13 +67,6 @@ public class SlidingWindowRankerTests
     }
 
     [Fact]
-    public void GetRank_ThrowsException_ForOnlyWidthSize1()
-    {
-        var initialValues = new List<int> { 10 };
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SlidingWindowRanker<int>(initialValues, 2));
-    }
-
-    [Fact]
     public void GetRank_ThrowsException_ForInvalidPartitionCount()
     {
         var initialValues = new List<int> { 1, 2, 3, 4, 5 };
@@ -193,7 +186,7 @@ public class SlidingWindowRankerTests
         return rank;
     }
 
-    [Fact]
+    [Fact(Skip = "WIP")]
     public void DebugTest()
     {
         // Initial values copied from the benchmark
