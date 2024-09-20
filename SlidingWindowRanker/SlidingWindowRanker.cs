@@ -132,6 +132,8 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <returns>The fraction of values in the window that are less than the specified value.</returns>
     public double GetRank(T value)
     {
+        _debugMessageRemove = null;
+        _debugMessageInsert = null;
         _valueToRemove = IsQueueFull ? _valueQueue.Dequeue() : default;
         _valueQueue.Enqueue(value);
         _valueToInsert = value;
@@ -145,8 +147,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         _indexWithinPartitionForInsert = int.MinValue; // a bad value so we throw if it never gets set
         var rank = CalculateRankBeforeDoingInsertAndRemove();
         Debug.Assert(_indexWithinPartitionForInsert != int.MinValue, "Must set _indexInPartitionForInsert before calling DoInsert");
-        DoInsert();
+
+        // 20240924 We can do Remove first or Insert first, but we must do both before AdjustPartitionsLowerBounds
         DoRemove();
+        DoInsert();
         AdjustPartitionsLowerBounds();
         return rank;
     }
@@ -236,6 +240,8 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
                 var previousPartition = _partitions[i - 1];
                 if (partition.LowerBound != previousPartition.LowerBound + previousPartition.Count)
                 {
+                    _ = _debugMessageInsert;
+                    _ = _debugMessageRemove;
                     throw new SlidingWindowRankerException("LowerBound is incorrect!");
                 }
             }
@@ -258,17 +264,21 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         else
         {
             _partitionForInsert.Insert(_valueToInsert, _indexWithinPartitionForInsert);
+            _beginIndexForLowerBoundInsertIncrements = _partitionForInsertIndex + 1;
+            if (_partitionRemovedIndex < _beginIndexForLowerBoundInsertIncrements)
+            {
+                // A partition was already removed. Add to it here so AdjustPartitionsLowerBounds will decrement the LowerBound
+                // The removed partition was 1 below the insert partition, so we need to increment the insert partition
+                _beginIndexForLowerBoundInsertIncrements--;
+            }
+// #if DEBUG
+//             _debugMessageInsert = $"Inserted value into _partitionForInsert={_partitionForInsert} "
+//                                   + $"at _partitionForInsertIndex={_partitionForInsertIndex} "
+//                                   + $"_beginIndexForLowerBoundInsertIncrements={_beginIndexForLowerBoundInsertIncrements}";
+// #endif
         }
         _partitionForInsert = null; // no longer needed
         _indexWithinPartitionForInsert = int.MinValue; // no longer valid
-        _beginIndexForLowerBoundInsertIncrements = _partitionForInsertIndex + 1;
-        if (_partitionRemovedIndex < _beginIndexForLowerBoundInsertIncrements)
-        {
-            // A partition was already removed. Add to it here so AdjustPartitionsLowerBounds will decrement the LowerBound
-            // The removed partition was 1 below the insert partition, so we need to increment the insert partition
-            _beginIndexForLowerBoundInsertIncrements--;
-        }
-        _partitionForInsertIndex = int.MinValue; // no longer valid
     }
 
     private void SplitPartitionAndDoInsert()
@@ -276,13 +286,19 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         CountPartitionSplits++;
         var rightPartition = _partitionForInsert.SplitAndInsert(_valueToInsert, _indexWithinPartitionForInsert);
         _partitions.Insert(_partitionForInsertIndex + 1, rightPartition);
-        rightPartition.LowerBound = _partitionForInsert.LowerBound + _partitionForInsert.Count;
         _partitionForInsertIndex++;
+        _partitionInsertedIndex = _partitionForInsertIndex;
         _beginIndexForLowerBoundInsertIncrements = _partitionForInsertIndex + 1;
+        if (_partitionRemovedIndex < _beginIndexForLowerBoundInsertIncrements)
+        {
+            // A partition was already removed. Add to it here so AdjustPartitionsLowerBounds will decrement the LowerBound
+            // The removed partition was 1 below the insert partition, so we need to increment the insert partition
+            _beginIndexForLowerBoundInsertIncrements--;
+        }
 #if DEBUG
-        _splitPartitionMessages.Add($"Split _partitionForInsert={_partitionForInsert} "
-                                    + $"at _partitionForInsertIndex={_partitionForInsertIndex} "
-                                    + $"_beginIndexForLowerBoundInsertIncrements={_beginIndexForLowerBoundInsertIncrements}");
+        // _debugMessageInsert = $"Split _partitionForInsert={_partitionForInsert} "
+        //                       + $"at _partitionForInsertIndex={_partitionForInsertIndex} "
+        //                       + $"_beginIndexForLowerBoundInsertIncrements={_beginIndexForLowerBoundInsertIncrements}";
 #endif
     }
 
@@ -318,6 +334,11 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
             // Decrement LowerBound for all partitions to the right of the partition holding the removed value
             _beginIndexForLowerBoundRemoveDecrements = partitionForRemoveIndex + 1;
+#if DEBUG
+            // _debugMessageRemove = $"Removed  value in _partitionForRemove={_partitionForRemove} "
+            //                       + $"at partitionForRemoveIndex={partitionForRemoveIndex} "
+            //                       + $"_beginIndexForLowerBoundRemoveDecrements={_beginIndexForLowerBoundRemoveDecrements}";
+#endif
         }
     }
 
@@ -330,11 +351,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         // We removed this partition, so decrement starting at this index
         _beginIndexForLowerBoundRemoveDecrements = partitionForRemoveIndex;
         _partitionRemovedIndex = partitionForRemoveIndex;
-
 #if DEBUG
-        _removePartitionMessages.Add($"Removed _partitionForRemove={_partitionForRemove} "
-                                     + $"at partitionForRemoveIndex={partitionForRemoveIndex} "
-                                     + $"_beginIndexForLowerBoundRemoveDecrements={_beginIndexForLowerBoundRemoveDecrements}");
+        // _debugMessageRemove = $"Removed _partitionForRemove={_partitionForRemove} "
+        //                       + $"at partitionForRemoveIndex={partitionForRemoveIndex} "
+        //                       + $"_beginIndexForLowerBoundRemoveDecrements={_beginIndexForLowerBoundRemoveDecrements}";
 #endif
     }
 

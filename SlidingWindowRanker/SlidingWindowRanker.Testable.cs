@@ -6,8 +6,8 @@ namespace SlidingWindowRanker;
 
 public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
-    private readonly List<string> _removePartitionMessages = [];
-    private readonly List<string> _splitPartitionMessages = [];
+    private string _debugMessageInsert;
+    private string _debugMessageRemove;
 
     internal List<Partition<T>> TestPartitions => _partitions;
     internal List<T> TestValues => GetValues();
@@ -35,6 +35,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
     internal void Test_DoInsert(T valueToInsert)
     {
+        _debugMessageInsert = null;
+        _debugMessageRemove = null;
+        _partitionInsertedIndex = int.MaxValue;
+        _partitionRemovedIndex = int.MaxValue;
         _valueToInsert = valueToInsert;
         (_partitionForInsert, _partitionForInsertIndex) = FindPartitionContaining(_valueToInsert);
         _indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
@@ -43,6 +47,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
     internal void Test_DoRemove(T valueToRemove)
     {
+        _debugMessageInsert = null;
+        _debugMessageRemove = null;
+        _partitionInsertedIndex = int.MaxValue;
+        _partitionRemovedIndex = int.MaxValue;
         _valueToRemove = valueToRemove;
         DoRemove();
     }
@@ -82,8 +90,8 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
             {
                 _ = CountPartitionRemoves;
                 _ = CountPartitionSplits;
-                _ = _removePartitionMessages;
-                _ = _splitPartitionMessages;
+                _ = _debugMessageRemove;
+                _ = _debugMessageInsert;
                 throw new SlidingWindowRankerException($"The LowerBound of partition={i} is not correct.");
             }
         }

@@ -113,19 +113,24 @@ public class SlidingWindowRankerTests
             valuesToRank.Add(i);
         }
         var initialValues = valuesToRank.Take(WindowSize).ToList();
-        var ranker = new SlidingWindowRanker<int>(initialValues, NumberOfPartitions);
         for (var index = WindowSize; index < NumberOfTestValues; index++)
         {
+            // Must start a new ranker for each index to test the sliding window,
+            // because partitions can be added and removed and values changed
+            var ranker = new SlidingWindowRanker<int>(initialValues, NumberOfPartitions);
             var value = valuesToRank[index];
             var rank = ranker.GetRank(value);
             var expected = ExpectedRank(ranker, value);
-            if (expected != rank)
-            {
-            }
             Assert.Equal(expected, rank, 3);
+            if (ranker.CountPartitionSplits > 0)
+            {
+                _output.WriteLine($"ranker.CountPartitionSplits={ranker.CountPartitionSplits}");
+            }
+            if (ranker.CountPartitionRemoves > 0)
+            {
+                _output.WriteLine($"ranker.CountPartitionRemoves={ranker.CountPartitionRemoves}");
+            }
         }
-        _output.WriteLine($"ranker.CountPartitionSplits={ranker.CountPartitionSplits}");
-        _output.WriteLine($"ranker.CountPartitionRemoves={ranker.CountPartitionRemoves}");
     }
 
     [Fact]
@@ -164,9 +169,11 @@ public class SlidingWindowRankerTests
         }
         var initialValues = valuesToRank.Take(WindowSize).ToList();
         var stopWatch = Stopwatch.StartNew();
-        var ranker = new SlidingWindowRanker<int>(initialValues, NumberOfPartitions);
         for (var index = WindowSize; index < NumberOfTestValues; index++)
         {
+            // Must start a new ranker for each index to test the sliding window,
+            // because partitions can be added and removed and values changed
+            var ranker = new SlidingWindowRanker<int>(initialValues, NumberOfPartitions);
             var value = valuesToRank[index];
             var rank = ranker.GetRank(value);
             var expected = ExpectedRank(ranker, value);
@@ -197,13 +204,12 @@ public class SlidingWindowRankerTests
 
         var valuesToRank = initialValuesStr.Split(',').Select(double.Parse).ToList();
         var initialValues = valuesToRank.Take(WindowSize).ToList();
-        var ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
         for (var index = WindowSize; index < valuesToRank.Count; index++)
         {
+            // Must start a new ranker for each index to test the sliding window,
+            // because partitions can be added and removed and values changed
+            var ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
             var value = valuesToRank[index];
-            if (index == 16)
-            {
-            }
             var rank = ranker.GetRank(value);
         }
     }

@@ -52,6 +52,11 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
 
     public void Insert(T value, int index)
     {
+        if (index > Values.Count)
+        {
+            // avoid a crash if our LowerBound came in with count
+            index = Values.Count;
+        }
         Values.Insert(index, value);
     }
 
@@ -73,6 +78,7 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
         if (splitIndex == Values.Count)
         {
             rightValues = [valueToInsert];
+            LowerBound--; // Because this case otherwise would not decrement LowerBound
         }
         else
         {
@@ -85,7 +91,10 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
         // rightValues.Capacity may be a minimum of 4 here because of List.DefaultCapacity
         rightValues.Capacity = _partitionSize * 2; // Leave room to grow
 
-        var rightPartition = new Partition<T>(rightValues, _partitionSize);
+        var rightPartition = new Partition<T>(rightValues, _partitionSize)
+        {
+            LowerBound = LowerBound + Values.Count
+        };
         return rightPartition;
     }
 
@@ -97,6 +106,6 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
 
     public override string ToString()
     {
-        return $"#values={Values.Count:N0} LowerBound={LowerBound:N0}";
+        return $"LowerBound={LowerBound:N0} #values={Values.Count:N0}";
     }
 }
