@@ -22,9 +22,9 @@ public class PartitionTests
         // Arrange
         var values = new List<int> { 1, 2, 3 };
         var partition = new Partition<int>(values);
-        partition.Insert(4, 1);
-        partition.Insert(4, 1);
-        partition.Insert(4, 1);
+        partition.Insert(4, 3);
+        partition.Insert(4, 4);
+        partition.Insert(4, 5);
 
         // Act
         var needsSplitting = partition.NeedsSplitting;

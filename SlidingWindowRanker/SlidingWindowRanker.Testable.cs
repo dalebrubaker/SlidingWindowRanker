@@ -12,17 +12,11 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     internal List<Partition<T>> TestPartitions => _partitions;
     internal List<T> TestValues => GetValues();
 
-    /// <summary>
-    /// From this index up to the highest partition, increment <see cref="LowerBound"/>
-    /// to account for <see cref="DoInsert"/> in a lower partition
-    /// </summary>
-    internal int Test_BeginIndexForLowerBoundInsertIncrements => _beginIndexForLowerBoundInsertIncrements;
+    internal int TestPartitionIndexChangedByInsert => _partitionIndexChangedByInsert;
 
-    /// <summary>
-    /// From this index up to the highest partition, decrement <see cref="LowerBound"/>
-    /// to account for <see cref="DoRemove"/> in a lower partition
-    /// </summary>
-    internal int Test_BeginIndexForLowerBoundRemoveDecrements => _beginIndexForLowerBoundRemoveDecrements;
+    internal int TestPartitionIndexChangedByRemove => _partitionIndexChangedByRemove;
+
+    internal int TestPartitionIndexInserted => _partitionIndexInserted;
 
     /// <summary>
     /// For debugging, return the values in all partitions.
@@ -35,10 +29,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
     internal void Test_DoInsert(T valueToInsert)
     {
-        _debugMessageInsert = null;
-        _debugMessageRemove = null;
-        _partitionInsertedIndex = int.MaxValue;
-        _partitionRemovedIndex = int.MaxValue;
+        InitializeState();
         _valueToInsert = valueToInsert;
         (_partitionForInsert, _partitionForInsertIndex) = FindPartitionContaining(_valueToInsert);
         _indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
@@ -47,25 +38,26 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
     internal void Test_DoRemove(T valueToRemove)
     {
-        _debugMessageInsert = null;
-        _debugMessageRemove = null;
-        _partitionInsertedIndex = int.MaxValue;
-        _partitionRemovedIndex = int.MaxValue;
+        InitializeState();
         _valueToRemove = valueToRemove;
         DoRemove();
     }
 
     internal void Test_AdjustPartitionsLowerBounds(bool didInsert, bool didRemove)
     {
+        _partitionForInsert = null;
+        _partitionForRemove = null;
+        _debugMessageRemove = null;
+        _debugMessageInsert = null;
+
         if (!didInsert)
         {
-            _beginIndexForLowerBoundInsertIncrements = int.MaxValue;
-            _partitionInsertedIndex = int.MaxValue;
+            _partitionIndexChangedByInsert = -1; // Not set yet
+            _partitionIndexInserted = -1; // Not set yet
         }
         if (!didRemove)
         {
-            _beginIndexForLowerBoundRemoveDecrements = int.MaxValue;
-            _partitionRemovedIndex = int.MaxValue;
+            _partitionIndexChangedByRemove = -1; // Not set yet
         }
         AdjustPartitionsLowerBounds();
     }
@@ -106,6 +98,20 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         if (!isSortedAscending)
         {
             throw new SlidingWindowRankerException("The LowerBounds of the partitions are not sorted ascending.");
+        }
+#endif
+    }
+
+    private void DebugPartitionValuesAreSortedAscending()
+    {
+#if DEBUG
+        for (var i = 0; i < _partitions.Count; i++)
+        {
+            var partition = _partitions[i];
+            if (!partition.Values.IsSortedAscending())
+            {
+                throw new SlidingWindowRankerException("The values in the partition are not sorted ascending.");
+            }
         }
 #endif
     }

@@ -58,6 +58,12 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
             index = Values.Count;
         }
         Values.Insert(index, value);
+#if DEBUG
+        if (!Values.IsSortedAscending())
+        {
+            throw new SlidingWindowRankerException("The value was not inserted at the expected index.");
+        }
+#endif
     }
 
     public int Remove(T value)
@@ -78,7 +84,6 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
         if (splitIndex == Values.Count)
         {
             rightValues = [valueToInsert];
-            LowerBound--; // Because this case otherwise would not decrement LowerBound
         }
         else
         {
@@ -90,11 +95,7 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
         // Leave room to grow. But note that for small partitions,
         // rightValues.Capacity may be a minimum of 4 here because of List.DefaultCapacity
         rightValues.Capacity = _partitionSize * 2; // Leave room to grow
-
-        var rightPartition = new Partition<T>(rightValues, _partitionSize)
-        {
-            LowerBound = LowerBound + Values.Count
-        };
+        var rightPartition = new Partition<T>(rightValues, _partitionSize);
         return rightPartition;
     }
 
@@ -106,6 +107,12 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
 
     public override string ToString()
     {
-        return $"LowerBound={LowerBound:N0} #values={Values.Count:N0}";
+        var values = Values.Count > 10 ? Values.Take(10).ToList() : Values;
+        var valuesStr = string.Join(", ", values);
+        if (Values.Count > 10)
+        {
+            valuesStr += "...";
+        }
+        return $"LowerBound={LowerBound:N0} #values={Values.Count:N0} {valuesStr} ";
     }
 }
