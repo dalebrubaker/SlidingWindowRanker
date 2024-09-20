@@ -182,8 +182,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         _partitionIndexInserted = -1; // Not set yet
         _partitionForInsert = null;
         _partitionForRemove = null;
+#if DEBUG
         _debugMessageRemove = null;
         _debugMessageInsert = null;
+#endif
         _indexWithinPartitionForInsert = int.MinValue; // a bad value so we throw if it never gets set
     }
 
@@ -289,11 +291,11 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         else
         {
             _partitionForInsert.Insert(_valueToInsert, _indexWithinPartitionForInsert);
-// #if DEBUG
+#if DEBUG
             _debugMessageInsert = $"Inserted value into _partitionForInsert={_partitionForInsert} "
                                   + $"at _partitionForInsertIndex={_partitionForInsertIndex} "
                                   + $"_beginIndexForLowerBoundInsertIncrements={_partitionIndexChangedByInsert}";
-// #endif
+#endif
         }
         _partitionForInsert = null; // no longer needed
         _indexWithinPartitionForInsert = int.MinValue; // no longer valid

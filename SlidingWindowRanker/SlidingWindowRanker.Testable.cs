@@ -6,8 +6,10 @@ namespace SlidingWindowRanker;
 
 public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
+#if DEBUG
     private string _debugMessageInsert;
     private string _debugMessageRemove;
+#endif
 
     internal List<Partition<T>> TestPartitions => _partitions;
     internal List<T> TestValues => GetValues();
@@ -47,8 +49,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     {
         _partitionForInsert = null;
         _partitionForRemove = null;
+#if DEBUG
         _debugMessageRemove = null;
         _debugMessageInsert = null;
+#endif
 
         if (!didInsert)
         {
