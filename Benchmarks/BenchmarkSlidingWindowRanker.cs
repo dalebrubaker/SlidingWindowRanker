@@ -15,10 +15,10 @@ public class BenchmarkSlidingWindowRanker
     private List<double> _valuesToRank;
 
     //[Params(1000, 10000)]
-    [Params(40000)]
+    [Params(1000, 10000, 100000)] //40000)]
     public int NumberOfTestValues { get; set; }
 
-    [Params(200)]
+    [Params(1, 2, 4, 8)] //200)]
     public int NumberOfPartitions { get; set; }
 
     private int WindowSize => NumberOfTestValues / 10;
@@ -35,13 +35,14 @@ public class BenchmarkSlidingWindowRanker
             _valuesToRank.Add(value);
         }
         s_ValuesToRankStr = string.Join(',', _valuesToRank);
-        var initialValues = _valuesToRank.Take(WindowSize).ToList();
-        _ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
     }
 
     [Benchmark]
     public void RankValues()
     {
+        var valuesToRank = new List<double>(_valuesToRank);
+        var initialValues = valuesToRank.Take(WindowSize).ToList();
+        _ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
         for (var index = WindowSize; index < NumberOfTestValues; index++)
         {
             var value = _valuesToRank[index];
