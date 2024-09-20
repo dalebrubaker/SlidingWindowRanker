@@ -6,7 +6,9 @@ namespace SlidingWindowRanker;
 
 public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
-    // ReSharper disable once CollectionNeverUpdated.Global
+    private readonly List<string> _removePartitionMessages = [];
+    private readonly List<string> _splitPartitionMessages = [];
+
     internal List<Partition<T>> TestPartitions => _partitions;
     internal List<T> TestValues => GetValues();
 
@@ -50,10 +52,12 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         if (!didInsert)
         {
             _beginIndexForLowerBoundInsertIncrements = int.MaxValue;
+            _partitionInsertedIndex = int.MaxValue;
         }
         if (!didRemove)
         {
             _beginIndexForLowerBoundRemoveDecrements = int.MaxValue;
+            _partitionRemovedIndex = int.MaxValue;
         }
         AdjustPartitionsLowerBounds();
     }
@@ -76,6 +80,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
             var priorPartition = _partitions[i - 1];
             if (partition.LowerBound != priorPartition.LowerBound + priorPartition.Count)
             {
+                _ = CountPartitionRemoves;
+                _ = CountPartitionSplits;
+                _ = _removePartitionMessages;
+                _ = _splitPartitionMessages;
                 throw new SlidingWindowRankerException($"The LowerBound of partition={i} is not correct.");
             }
         }

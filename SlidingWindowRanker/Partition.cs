@@ -50,11 +50,9 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
         return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
     }
 
-    public int Insert(T value)
+    public void Insert(T value, int index)
     {
-        var index = Values.LowerBound(value);
         Values.Insert(index, value);
-        return index;
     }
 
     public int Remove(T value)

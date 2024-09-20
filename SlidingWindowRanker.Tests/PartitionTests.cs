@@ -22,9 +22,9 @@ public class PartitionTests
         // Arrange
         var values = new List<int> { 1, 2, 3 };
         var partition = new Partition<int>(values);
-        partition.Insert(4);
-        partition.Insert(4);
-        partition.Insert(4);
+        partition.Insert(4, 1);
+        partition.Insert(4, 1);
+        partition.Insert(4, 1);
 
         // Act
         var needsSplitting = partition.NeedsSplitting;
@@ -41,7 +41,7 @@ public class PartitionTests
         var partition = new Partition<int>(values);
 
         // Act
-        partition.Insert(4);
+        partition.Insert(4, 2);
 
         // Assert
         Assert.Equal([1, 3, 4, 5], partition.Values);

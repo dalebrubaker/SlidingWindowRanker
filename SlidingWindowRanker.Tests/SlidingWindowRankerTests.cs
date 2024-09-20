@@ -186,7 +186,7 @@ public class SlidingWindowRankerTests
         return rank;
     }
 
-    [Fact(Skip = "WIP")]
+    [Fact]
     public void DebugTest()
     {
         // Initial values copied from the benchmark
@@ -201,6 +201,9 @@ public class SlidingWindowRankerTests
         for (var index = WindowSize; index < valuesToRank.Count; index++)
         {
             var value = valuesToRank[index];
+            if (index == 16)
+            {
+            }
             var rank = ranker.GetRank(value);
         }
     }
