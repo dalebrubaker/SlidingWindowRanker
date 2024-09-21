@@ -25,14 +25,6 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// </summary>
     private readonly int _windowSize;
 
-    /// <summary>
-    /// The index  in the partition where we did <see cref="DoInsert"/> at which we inserted a new value,
-    /// or null if no value was inserted
-    /// This is determined during <see cref="CalculateRankBeforeDoingInsertAndRemove"/>
-    /// and saved for the later <see cref="DoInsert"/> 
-    /// </summary>
-    private int _indexWithinPartitionForInsert;
-
     private Partition<T> _partitionForInsert;
     private int _partitionForInsertIndex;
     private Partition<T> _partitionForRemove;
@@ -147,7 +139,6 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         InitializeState();
 
         var rank = CalculateRankBeforeDoingInsertAndRemove();
-        Debug.Assert(_indexWithinPartitionForInsert != int.MinValue, "Must set _indexInPartitionForInsert before calling DoInsert");
 
         const bool IsDoingInsertFirst = true; // true is faster, unless we use different threads
         DoInsertAndRemove(IsDoingInsertFirst);
@@ -166,11 +157,6 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         else
         {
             DoRemove();
-
-            // In this case we must reset variables done in CalculateRankBeforeDoingInsertAndRemove() that are now invalid
-            (_partitionForInsert, _partitionForInsertIndex) = FindPartitionContaining(_valueToInsert);
-            _indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
-
             DoInsert();
         }
     }
@@ -186,7 +172,6 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         _debugMessageRemove = null;
         _debugMessageInsert = null;
 #endif
-        _indexWithinPartitionForInsert = int.MinValue; // a bad value so we throw if it never gets set
     }
 
     /// <summary>
@@ -205,7 +190,6 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
             {
                 // No matter what happens, a lower value will be removed and _valueToInsert will be added at the end, so we know the result without doing more work
                 var result = (_valueQueue.Count - 1) / (double)_valueQueue.Count;
-                _indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
                 return result;
             }
         }
@@ -213,8 +197,8 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         {
             (_partitionForInsert, _partitionForInsertIndex) = FindPartitionContaining(_valueToInsert);
         }
-        _indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
-        var lowerBound = _partitionForInsert.LowerBound + _indexWithinPartitionForInsert;
+        var indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
+        var lowerBound = _partitionForInsert.LowerBound + indexWithinPartitionForInsert;
         if (IsQueueFull && _valueToRemove?.CompareTo(_valueToInsert) < 0)
         {
             // After we do the insert and remove, the lower bound will be one less
@@ -282,6 +266,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// </summary>
     private void DoInsert()
     {
+        (_partitionForInsert, _partitionForInsertIndex) = FindPartitionContaining(_valueToInsert);
         _partitionIndexChangedByInsert = _partitionForInsertIndex;
         if (_partitionForInsert.NeedsSplitting)
         {
@@ -298,13 +283,13 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 #endif
         }
         _partitionForInsert = null; // no longer needed
-        _indexWithinPartitionForInsert = int.MinValue; // no longer valid
     }
 
     private void SplitPartitionAndDoInsert()
     {
         CountPartitionSplits++;
-        var rightPartition = _partitionForInsert.SplitAndInsert(_valueToInsert, _indexWithinPartitionForInsert);
+        var indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
+        var rightPartition = _partitionForInsert.SplitAndInsert(_valueToInsert, indexWithinPartitionForInsert);
         _partitions.Insert(_partitionForInsertIndex + 1, rightPartition);
         _partitionForInsertIndex++;
         _partitionIndexInserted = _partitionForInsertIndex;

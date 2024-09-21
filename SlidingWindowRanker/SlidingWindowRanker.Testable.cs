@@ -33,8 +33,6 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     {
         InitializeState();
         _valueToInsert = valueToInsert;
-        (_partitionForInsert, _partitionForInsertIndex) = FindPartitionContaining(_valueToInsert);
-        _indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
         DoInsert();
     }
 

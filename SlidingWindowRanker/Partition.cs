@@ -31,14 +31,12 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
     /// <summary>
     /// Return the lowest value in the partition or null if the partition is empty.
     /// </summary>
-    //public T LowestValue => Values.Count == 0 ? default : Values[0];
-    public T LowestValue => Values[0];
+    public T LowestValue => Values.Count == 0 ? default : Values[0];
 
     /// <summary>
     /// Return the highest value in the partition or null if the partition is empty.
     /// </summary>
-    //public T HighestValue => Values.Count == 0 ? default : Values[^1];
-    public T HighestValue => Values[^1];
+    public T HighestValue => Values.Count == 0 ? default : Values[^1];
 
     public int Count => Values.Count;
 
