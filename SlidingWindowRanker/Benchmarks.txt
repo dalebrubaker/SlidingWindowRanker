@@ -112,3 +112,29 @@ Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
 | RankValues | 100000             | 4                  | 173.11 ms | 1.967 ms | 1.840 ms |    2 |                    - |                - | 391.49 KB |
 | RankValues | 100000             | 2                  | 368.44 ms | 3.183 ms | 2.978 ms |    3 |                    - |                - | 391.53 KB |
 | RankValues | 100000             | 1                  | 739.55 ms | 5.740 ms | 5.089 ms |    4 |                    - |                - | 391.42 KB |
+
+```
+
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error    | StdDev   | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 100000             | 8                  | 51.35 ms | 0.383 ms | 0.358 ms |    1 |                    - |                - |   1.22 MB |
+
+Simplified by adding a couple of extra LowerBound() calls
+```
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error    | StdDev   | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 100000             | 8                  | 56.26 ms | 0.096 ms | 0.090 ms |    1 |                    - |                - |   1.22 MB |
+
+```
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error    | StdDev   | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 100000             | 8                  | 54.34 ms | 0.196 ms | 0.163 ms |    1 |                    - |                - |      40 B |

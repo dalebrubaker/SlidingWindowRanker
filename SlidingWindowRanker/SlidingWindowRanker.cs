@@ -155,10 +155,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         return rank;
     }
 
-    private void DoInsertAndRemove(bool IsDoingInsertFirst)
+    private void DoInsertAndRemove(bool isDoingInsertFirst)
     {
         // 20240924 We can do Remove first or Insert first, but we must do both before AdjustPartitionsLowerBounds
-        if (IsDoingInsertFirst)
+        if (isDoingInsertFirst)
         {
             DoInsert();
             DoRemove();
@@ -328,6 +328,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         }
         Debug.Assert(_valueToRemove != null);
         (_partitionForRemove, var partitionForRemoveIndex) = FindPartitionContaining(_valueToRemove);
+#if DEBUG
         if (_valueToRemove.CompareTo(_partitionForRemove.HighestValue) > 0)
         {
             throw new SlidingWindowRankerException("The value to remove above the HighestValue in the window.");
@@ -336,6 +337,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         {
             throw new SlidingWindowRankerException("The value to remove is below the LowestValue of the window.");
         }
+#endif
         if (_partitionForRemove.Count == 1)
         {
             RemovePartition(partitionForRemoveIndex);
