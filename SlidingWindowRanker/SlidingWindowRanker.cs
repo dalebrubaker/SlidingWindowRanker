@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("SlidingWindowRanker.Tests")]
 
@@ -23,16 +24,6 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// but it can be set to a higher value if starting with little or no initial values.
     /// </summary>
     private readonly int _windowSize;
-
-    /// <summary>
-    /// _valueToInsert is cached so a future implementation could have a different thread do the insert
-    /// </summary>
-    private T _valueToInsert;
-
-    /// <summary>
-    /// _valueToRemove is cached so a future implementation could have a different thread do the insert
-    /// </summary>
-    private T _valueToRemove;
 
     /// <summary>
     /// Initializes a new instance of the SlidingWindowRanker class.
@@ -109,26 +100,87 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// But we determine the result BEFORE we do the add/remove so we can later have a different thread
     /// or threads do the insert and/or remove. Finally, we adjust the partition LowerBound values to reflect the insert and remove.
     /// </summary>
-    /// <param name="value">The value to calculate the Rank for.</param>
+    /// <param name="valueToInsert">The value to calculate the Rank for.</param>
     /// <returns>The fraction of values in the window that are less than the specified value.</returns>
-    public double GetRank(T value)
+    public double GetRank(T valueToInsert)
     {
-        _valueToRemove = IsQueueFull ? _valueQueue.Dequeue() : default;
-        _valueQueue.Enqueue(value);
-        _valueToInsert = value;
+        // if (valueToInsert.ToString() == "4.7")`
+        // {
+        //     Debugger.Break();
+        // }
+        var valueToRemove = IsQueueFull ? _valueQueue.Dequeue() : default;
+        _valueQueue.Enqueue(valueToInsert);
+        var isInsertDone = false;
+        var isRemoveDone = !IsQueueFull;
 #if DEBUG
         _debugMessageRemove = null;
         _debugMessageInsert = null;
 #endif
 
+        // Calculate the rank BEFORE we DoInsert and DoRemove and AdjustPartitionsLowerBounds, so we can later do those a different thread
         // We use _valueQueue.Count instead of _windowSize because the window may not be full yet
-        var rank = CalculateRankBeforeDoingInsertAndRemove(_valueToInsert, _valueToRemove, _valueQueue.Count);
+        var (rank, partitionForInsert, partitionIndexForInsert) =
+            CalculateRankBeforeDoingInsertAndRemove(valueToInsert, valueToRemove, _valueQueue.Count);
 
-        // 20240924 We can do Remove first or Insert first, but we must do both before AdjustPartitionsLowerBounds
-        var (partitionIndexChangedByInsert, partitionIndexSplitInserted) = DoInsert(_valueToInsert);
-        var partitionIndexChangedByRemove = DoRemove(_valueToRemove);
-        AdjustPartitionsLowerBounds(partitionIndexChangedByInsert, partitionIndexSplitInserted, partitionIndexChangedByRemove);
+        // Now handle partition splits and partition removes, so the _partitions list can't be changed while
+        //  DoInsert and DoRemove run in parallel. These happen rarely, so we don't need to worry about performance.
+        var partitionIndexSplitInserted = _partitions.Count - 1; // Default to the last partition
+        if (partitionForInsert.NeedsSplitting)
+        {
+            SplitPartition(partitionForInsert, partitionIndexForInsert, valueToInsert);
+            partitionIndexSplitInserted = partitionIndexForInsert + 1;
+            isInsertDone = true;
+        }
+        Partition<T> partitionForRemove = null;
+        var partitionIndexForRemove = -1;
+        if (IsQueueFull)
+        {
+            (partitionForRemove, partitionIndexForRemove) = FindPartitionContaining(valueToRemove);
+            if (partitionForRemove.Count == 1)
+            {
+                // The partition holding the value to remove will be empty after the remove
+                if (partitionIndexForRemove != partitionIndexForInsert)
+                {
+                    // But don't remove the partition because we are about to insert a value into it
+                    RemovePartition(partitionIndexForRemove, partitionForRemove);
+                    isRemoveDone = true;
+                }
+            }
+        }
+        if (!isInsertDone)
+        {
+            // The partition holding the value to insert was not split, so insert the value into it
+            // var insertTask = Task.Run(() => DoInsert(_valueToInsert, partitionForInsert));
+            DoInsert(valueToInsert, partitionForInsert);
+        }
+        if (!isRemoveDone)
+        {
+            // The partition holding the value to remove was not removed, so remove the value from it
+            // var removeTask = Task.Run(() => DoRemove(_valueToRemove, partitionForRemove));
+            DoRemove(valueToRemove, partitionForRemove);
+        }
+        AdjustPartitionsLowerBounds(partitionIndexForInsert, partitionIndexSplitInserted, partitionIndexForRemove);
         return rank;
+    }
+
+    private void SplitPartition(Partition<T> partitionForInsert, int partitionIndexForInsert, T valueToInsert)
+    {
+        CountPartitionSplits++;
+        var rightPartition = partitionForInsert.SplitAndInsert(valueToInsert);
+        _partitions.Insert(partitionIndexForInsert + 1, rightPartition);
+#if DEBUG
+        _debugMessageInsert = $"Split partitionForInsert={partitionForInsert} at partitionIndexForInsert={partitionIndexForInsert} "
+                              + $"partitionIndexSplitInserted={partitionIndexForInsert + 1}";
+#endif
+    }
+
+    private void RemovePartition(int partitionIndexForRemove, Partition<T> partitionForRemove)
+    {
+        _partitions.RemoveAt(partitionIndexForRemove);
+#if DEBUG
+        _debugMessageRemove = $"Removed _partitionForRemove={partitionForRemove} at partitionForRemoveIndex={partitionIndexForRemove}";
+#endif
+        CountPartitionRemoves++;
     }
 
     /// <summary>
@@ -140,9 +192,11 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="countValues">The number of values in _valuesQueue. We use _valueQueue.Count instead of _windowSize
     /// because the window may not be full yet </param>
     /// <returns></returns>
-    private double CalculateRankBeforeDoingInsertAndRemove(T valueToInsert, T valueToRemove, int countValues)
+    private (double rank, Partition<T> partitionForInsert, int partitionForInsertIndex) CalculateRankBeforeDoingInsertAndRemove(T valueToInsert,
+        T valueToRemove, int countValues)
     {
         Partition<T> partitionForInsert;
+        var partitionForInsertIndex = _partitions.Count - 1; // Default to the last partition
         if (valueToInsert.CompareTo(_partitions[^1].LowestValue) >= 0)
         {
             // The value will be added to the end of the last partition
@@ -152,12 +206,12 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
                 // No matter what happens, a lower value will be removed and valueToInsert will be added at the end,
                 // so we know the result without doing more work
                 var result = (countValues - 1) / (double)countValues;
-                return result;
+                return (result, partitionForInsert, partitionForInsertIndex);
             }
         }
         else
         {
-            (partitionForInsert, _) = FindPartitionContaining(valueToInsert);
+            (partitionForInsert, partitionForInsertIndex) = FindPartitionContaining(valueToInsert);
         }
         var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToInsert);
         var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
@@ -167,7 +221,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
             lowerBound--;
         }
         var rank = (double)lowerBound / countValues;
-        return rank;
+        return (rank, partitionForInsert, partitionForInsertIndex);
     }
 
     /// <summary>
@@ -226,31 +280,15 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// The partition holding value will be split if it is full (meaning it has reached its capacity).
     /// The capacity of a partition is double the initial count of values in the partition.
     /// </summary>
-    private (int partitionIndexChangedByInsert, int partitionIndexSplitInserted) DoInsert(T valueToInsert)
+    /// <param name="valueToInsert">The value to insert.</param>
+    /// <param name="partitionForInsert"></param>
+    private void DoInsert(T valueToInsert, Partition<T> partitionForInsert)
     {
-        var (partitionForInsert, partitionIndexChangedByInsert) = FindPartitionContaining(valueToInsert);
-        var partitionIndexSplitInserted = -1;
-        if (partitionForInsert.NeedsSplitting)
-        {
-            CountPartitionSplits++;
-            var rightPartition = partitionForInsert.SplitAndInsert(valueToInsert);
-            _partitions.Insert(partitionIndexChangedByInsert + 1, rightPartition);
-            partitionIndexSplitInserted = partitionIndexChangedByInsert + 1;
+        Debug.Assert(!partitionForInsert.NeedsSplitting, "Must have been split before we get here");
+        partitionForInsert.Insert(valueToInsert);
 #if DEBUG
-            _debugMessageInsert = $"Split partitionForInsert={partitionForInsert} "
-                                  + $"at partitionIndexChangedByInsert={partitionIndexChangedByInsert} "
-                                  + $"partitionIndexSplitInserted={partitionIndexSplitInserted}";
+        _debugMessageInsert = $"Inserted value into partitionForInsert={partitionForInsert}";
 #endif
-        }
-        else
-        {
-            partitionForInsert.Insert(valueToInsert);
-#if DEBUG
-            _debugMessageInsert = $"Inserted value into partitionForInsert={partitionForInsert} "
-                                  + $"at partitionIndexChangedByInsert={partitionIndexChangedByInsert}";
-#endif
-        }
-        return (partitionIndexChangedByInsert, partitionIndexSplitInserted);
     }
 
     /// <summary>
@@ -258,15 +296,11 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// The partition holding _valueToRemove will be removed when is emptied.
     /// </summary>
     /// <param name="valueToRemove">The value to remove.</param>
+    /// <param name="partitionForRemove"></param>
     /// <returns>The index of the partition where the value was removed, or -1 if no value was removed.</returns>
-    private int DoRemove(T valueToRemove)
+    private void DoRemove(T valueToRemove, Partition<T> partitionForRemove)
     {
-        if (!IsQueueFull)
-        {
-            // We don't start removing values until the queue is full
-            return -1; // no remove happened
-        }
-        var (partitionForRemove, partitionIndexChangedByRemove) = FindPartitionContaining(valueToRemove);
+        Debug.Assert(partitionForRemove.Count > 1, "Partition should have been removed before we get here");
 #if DEBUG
         if (valueToRemove.CompareTo(partitionForRemove.HighestValue) > 0)
         {
@@ -277,21 +311,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
             throw new SlidingWindowRankerException("The value to remove is below the LowestValue of the window.");
         }
 #endif
-        if (partitionForRemove.Count == 1)
-        {
-            // Remove the partition if it only contains the value we are removing
-            _partitions.RemoveAt(partitionIndexChangedByRemove);
-            CountPartitionRemoves++;
-        }
-        else
-        {
-            partitionForRemove.Remove(valueToRemove);
-        }
+        partitionForRemove.Remove(valueToRemove);
 #if DEBUG
-        _debugMessageRemove = $"Removed  value in _partitionForRemove={partitionForRemove} "
-                              + $"at partitionForRemoveIndex={partitionIndexChangedByRemove}";
+        _debugMessageRemove = $"Removed  value in _partitionForRemove={partitionForRemove}";
 #endif
-        return partitionIndexChangedByRemove;
     }
 
     /// <summary>

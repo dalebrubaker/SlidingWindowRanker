@@ -209,7 +209,7 @@ public class SlidingWindowRankerTests
         var ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
         for (var index = WindowSize; index < valuesToRank.Count; index++)
         {
-            if (index == 44)
+            if (index == 54)
             {
             }
             var value = valuesToRank[index];

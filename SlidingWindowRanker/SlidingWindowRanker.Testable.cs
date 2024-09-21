@@ -6,11 +6,6 @@ namespace SlidingWindowRanker;
 
 public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
-#if DEBUG
-    private string _debugMessageInsert;
-    private string _debugMessageRemove;
-#endif
-
     internal List<Partition<T>> TestPartitions => _partitions;
     internal List<T> TestValues => GetValues();
 
@@ -29,8 +24,15 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         _debugMessageRemove = null;
         _debugMessageInsert = null;
 #endif
-        _valueToInsert = valueToInsert;
-        DoInsert(valueToInsert);
+        var (partitionForInsert, partitionIndexForInsert) = FindPartitionContaining(valueToInsert);
+        if (partitionForInsert.NeedsSplitting)
+        {
+            SplitPartition(partitionForInsert, partitionIndexForInsert, valueToInsert);
+        }
+        else
+        {
+            DoInsert(valueToInsert, partitionForInsert);
+        }
     }
 
     internal void Test_DoRemove(T valueToRemove)
@@ -39,7 +41,16 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         _debugMessageRemove = null;
         _debugMessageInsert = null;
 #endif
-        DoRemove(valueToRemove);
+        var (partitionForRemove, partitionIndexForRemove) = FindPartitionContaining(valueToRemove);
+        if (partitionForRemove.Count == 1)
+        {
+            // The partition holding the value to remove will be empty after the remove
+            RemovePartition(partitionIndexForRemove, partitionForRemove);
+        }
+        else
+        {
+            DoRemove(valueToRemove, partitionForRemove);
+        }
     }
 
     /// <summary>
@@ -95,4 +106,11 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         }
 #endif
     }
+    
+    
+    
+#if DEBUG
+    private string _debugMessageInsert;
+    private string _debugMessageRemove;
+#endif
 }

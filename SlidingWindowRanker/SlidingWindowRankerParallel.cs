@@ -239,45 +239,32 @@ public partial class SlidingWindowRankerParallel<T> where T : IComparable<T>
     /// <exception cref="NotImplementedException"></exception>
     private void AdjustPartitionsLowerBounds()
     {
-#if DEBUG
         lock (_lock)
         {
-            for (var i = 1; i < _partitions.Count; i++)
+            DebugCheckPartitionHighLowValues();
+            if (_partitionIndexChangedByInsert < 0 && _partitionIndexChangedByRemove >= 0)
+            {
+                // happens on unit test only
+                _partitionIndexChangedByInsert = _partitions.Count - 1;
+            }
+            var lowestPartitionChanged = _partitionIndexChangedByInsert;
+            var highestPartitionChanged = _partitionIndexChangedByInsert;
+            if (_partitionIndexChangedByRemove >= 0)
+            {
+                lowestPartitionChanged = Math.Min(_partitionIndexChangedByRemove, lowestPartitionChanged);
+                highestPartitionChanged = Math.Max(_partitionIndexChangedByRemove, highestPartitionChanged);
+            }
+            if (_partitionIndexInserted >= 0)
+            {
+                lowestPartitionChanged = Math.Min(_partitionIndexInserted, lowestPartitionChanged);
+                highestPartitionChanged = Math.Max(_partitionIndexInserted, highestPartitionChanged);
+            }
+            highestPartitionChanged = Math.Min(highestPartitionChanged, _partitions.Count - 1);
+            for (var i = lowestPartitionChanged; i <= highestPartitionChanged; i++)
             {
                 var partition = _partitions[i];
-                var previousPartition = _partitions[i - 1];
-                if (previousPartition.HighestValue.CompareTo(partition.LowestValue) > 0)
-                {
-                    _ = _debugMessageInsert;
-                    _ = _debugMessageRemove;
-                    throw new SlidingWindowRankerException(
-                        "The HighestValue of the previous partition is greater than the LowestValue of the current partition.");
-                }
+                partition.LowerBound = i == 0 ? 0 : _partitions[i - 1].LowerBound + _partitions[i - 1].Count;
             }
-            var lowerBoundsBeforeAdjusting = _partitions.Select(p => p.LowerBound).ToList();
-#endif
-        if (_partitionIndexChangedByInsert < 0 && _partitionIndexChangedByRemove >= 0)
-        {
-            // happens on unit test only
-            _partitionIndexChangedByInsert = _partitions.Count - 1;
-        }
-        var lowestPartitionChanged = _partitionIndexChangedByInsert;
-        var highestPartitionChanged = _partitionIndexChangedByInsert;
-        if (_partitionIndexChangedByRemove >= 0)
-        {
-            lowestPartitionChanged = Math.Min(_partitionIndexChangedByRemove, lowestPartitionChanged);
-            highestPartitionChanged = Math.Max(_partitionIndexChangedByRemove, highestPartitionChanged);
-        }
-        if (_partitionIndexInserted >= 0)
-        {
-            lowestPartitionChanged = Math.Min(_partitionIndexInserted, lowestPartitionChanged);
-            highestPartitionChanged = Math.Max(_partitionIndexInserted, highestPartitionChanged);
-        }
-        highestPartitionChanged = Math.Min(highestPartitionChanged, _partitions.Count - 1);
-        for (var i = lowestPartitionChanged; i <= highestPartitionChanged; i++)
-        {
-            var partition = _partitions[i];
-            partition.LowerBound = i == 0 ? 0 : _partitions[i - 1].LowerBound + _partitions[i - 1].Count;
         }
     }
 
@@ -423,6 +410,24 @@ public partial class SlidingWindowRankerParallel<T> where T : IComparable<T>
             }
             return low;
         }
+    }
+
+    private void DebugCheckPartitionHighLowValues()
+    {
+#if DEBUG
+        for (var i = 1; i < _partitions.Count; i++)
+        {
+            var partition = _partitions[i];
+            var previousPartition = _partitions[i - 1];
+            if (previousPartition.HighestValue.CompareTo(partition.LowestValue) > 0)
+            {
+                _ = _debugMessageInsert;
+                _ = _debugMessageRemove;
+                throw new SlidingWindowRankerException(
+                    "The HighestValue of the previous partition is greater than the LowestValue of the current partition.");
+            }
+        }
+#endif
     }
 
     public override string ToString()
