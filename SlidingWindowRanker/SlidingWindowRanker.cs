@@ -290,7 +290,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         }
         else
         {
-            _partitionForInsert.Insert(_valueToInsert, _indexWithinPartitionForInsert);
+            _partitionForInsert.Insert(_valueToInsert);
 #if DEBUG
             _debugMessageInsert = $"Inserted value into _partitionForInsert={_partitionForInsert} "
                                   + $"at _partitionForInsertIndex={_partitionForInsertIndex} "
