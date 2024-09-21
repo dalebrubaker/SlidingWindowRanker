@@ -95,7 +95,7 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
 
         // Leave room to grow. But note that for small partitions,
         // rightValues.Capacity may be a minimum of 4 here because of List.DefaultCapacity
-        rightValues.Capacity = _partitionSize * 2; // Leave room to grow
+        rightValues.Capacity = Math.Max(rightValues.Capacity, _partitionSize * 2) ; // Leave room to grow
         var rightPartition = new Partition<T>(rightValues, _partitionSize);
         return rightPartition;
     }
