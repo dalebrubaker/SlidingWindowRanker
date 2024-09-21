@@ -67,7 +67,7 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
 #endif
     }
 
-    public int Remove(T value)
+    public void Remove(T value)
     {
         var index = Values.LowerBound(value);
         var existingValue = Values[index];
@@ -76,12 +76,12 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
             throw new SlidingWindowRankerException("The value to remove was not found in the partition.");
         }
         Values.RemoveAt(index);
-        return index;
     }
 
-    public Partition<T> SplitAndInsert(T valueToInsert, int splitIndex)
+    public Partition<T> SplitAndInsert(T valueToInsert)
     {
         List<T> rightValues;
+        var splitIndex = Values.LowerBound(valueToInsert);
         if (splitIndex == Values.Count)
         {
             rightValues = [valueToInsert];
@@ -95,7 +95,7 @@ internal partial class Partition<T> : IComparable<Partition<T>> where T : ICompa
 
         // Leave room to grow. But note that for small partitions,
         // rightValues.Capacity may be a minimum of 4 here because of List.DefaultCapacity
-        rightValues.Capacity = Math.Max(rightValues.Capacity, _partitionSize * 2) ; // Leave room to grow
+        rightValues.Capacity = Math.Max(rightValues.Capacity, _partitionSize * 2); // Leave room to grow
         var rightPartition = new Partition<T>(rightValues, _partitionSize);
         return rightPartition;
     }

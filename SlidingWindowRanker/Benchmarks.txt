@@ -122,7 +122,7 @@ Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
 |----------- |------------------- |------------------- |---------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
 | RankValues | 100000             | 8                  | 51.35 ms | 0.383 ms | 0.358 ms |    1 |                    - |                - |   1.22 MB |
 
-Simplified by adding a couple of extra LowerBound() calls
+Simplified by adding a couple of extra LowerBound() calls in preparation for threading
 ```
 
 
@@ -138,3 +138,92 @@ Simplified by adding a couple of extra LowerBound() calls
 | Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error    | StdDev   | Rank | Completed Work Items | Lock Contentions | Allocated |
 |----------- |------------------- |------------------- |---------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
 | RankValues | 100000             | 8                  | 54.34 ms | 0.196 ms | 0.163 ms |    1 |                    - |                - |      40 B |
+
+Added an extra FindPartitionConatining and  LowerBound() in preparation for threading
+```
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error    | StdDev   | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 100000             | 8                  | 45.44 ms | 0.141 ms | 0.110 ms |    1 |                    - |                - |      40 B |
+```
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error    | StdDev   | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 100000             | 8                  | 55.85 ms | 0.187 ms | 0.175 ms |    1 |                    - |                - |      44 B |
+
+Back-to-back runs very different
+
+```
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
+Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
+.NET SDK 8.0.400
+  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev   | Median   | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 128                | 185.1 ms | 5.33 ms | 15.72 ms | 191.1 ms |    1 |                    - |                - |     184 B |
+| RankValues | 400000             | 64                 | 186.8 ms | 5.76 ms | 16.99 ms | 193.7 ms |    1 |                    - |                - |     184 B |
+| RankValues | 400000             | 32                 | 249.8 ms | 0.96 ms |  0.85 ms | 249.8 ms |    2 |                    - |                - |     200 B |
+| RankValues | 400000             | 16                 | 300.0 ms | 1.16 ms |  0.97 ms | 299.4 ms |    3 |                    - |                - |     400 B |
+| RankValues | 400000             | 8                  | 476.0 ms | 6.04 ms | 14.35 ms | 470.8 ms |    4 |                    - |                - |     400 B |
+
+```
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
+Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
+.NET SDK 8.0.400
+  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 2048               |       NA |      NA |      NA |    ? |                   NA |               NA |        NA |
+| RankValues | 400000             | 256                | 139.5 ms | 0.58 ms | 0.54 ms |    1 |                    - |                - |     100 B |
+| RankValues | 400000             | 512                | 169.9 ms | 1.12 ms | 1.05 ms |    2 |                    - |                - |     133 B |
+| RankValues | 400000             | 1024               | 230.7 ms | 2.20 ms | 2.06 ms |    3 |                    - |                - |    3693 B |
+
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 2048               | 391.3 ms | 1.64 ms | 1.53 ms |    1 |                    - |                - |   1.55 MB |
+
+
+```
+```
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
+Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
+.NET SDK 8.0.400
+  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev   | Median   | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 128                | 126.3 ms | 0.54 ms |  1.12 ms | 126.0 ms |    1 |                    - |                - |     100 B |
+| RankValues | 400000             | 256                | 141.2 ms | 0.69 ms |  0.65 ms | 141.2 ms |    2 |                    - |                - |     100 B |
+| RankValues | 400000             | 64                 | 182.6 ms | 6.97 ms | 20.54 ms | 192.7 ms |    3 |                    - |                - |      80 B |
+| RankValues | 400000             | 32                 | 225.4 ms | 1.97 ms |  3.65 ms | 224.8 ms |    4 |                    - |                - |     200 B |
+
+```
+After changing to pass parameters instead of using fields:
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 256                | 142.1 ms | 1.89 ms | 1.67 ms |    1 |                    - |                - |     100 B |
+```
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 128                | 127.6 ms | 0.69 ms | 0.64 ms |    1 |                    - |                - |      16 B |

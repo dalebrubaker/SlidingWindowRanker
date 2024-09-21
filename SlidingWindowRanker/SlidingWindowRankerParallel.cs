@@ -256,29 +256,28 @@ public partial class SlidingWindowRankerParallel<T> where T : IComparable<T>
             }
             var lowerBoundsBeforeAdjusting = _partitions.Select(p => p.LowerBound).ToList();
 #endif
-            if (_partitionIndexChangedByInsert < 0 && _partitionIndexChangedByRemove >= 0)
-            {
-                // happens on unit test only
-                _partitionIndexChangedByInsert = _partitions.Count - 1;
-            }
-            var lowestPartitionChanged = _partitionIndexChangedByInsert;
-            var highestPartitionChanged = _partitionIndexChangedByInsert;
-            if (_partitionIndexChangedByRemove >= 0)
-            {
-                lowestPartitionChanged = Math.Min(_partitionIndexChangedByRemove, lowestPartitionChanged);
-                highestPartitionChanged = Math.Max(_partitionIndexChangedByRemove, highestPartitionChanged);
-            }
-            if (_partitionIndexInserted >= 0)
-            {
-                lowestPartitionChanged = Math.Min(_partitionIndexInserted, lowestPartitionChanged);
-                highestPartitionChanged = Math.Max(_partitionIndexInserted, highestPartitionChanged);
-            }
-            highestPartitionChanged = Math.Min(highestPartitionChanged, _partitions.Count - 1);
-            for (var i = lowestPartitionChanged; i <= highestPartitionChanged; i++)
-            {
-                var partition = _partitions[i];
-                partition.LowerBound = i == 0 ? 0 : _partitions[i - 1].LowerBound + _partitions[i - 1].Count;
-            }
+        if (_partitionIndexChangedByInsert < 0 && _partitionIndexChangedByRemove >= 0)
+        {
+            // happens on unit test only
+            _partitionIndexChangedByInsert = _partitions.Count - 1;
+        }
+        var lowestPartitionChanged = _partitionIndexChangedByInsert;
+        var highestPartitionChanged = _partitionIndexChangedByInsert;
+        if (_partitionIndexChangedByRemove >= 0)
+        {
+            lowestPartitionChanged = Math.Min(_partitionIndexChangedByRemove, lowestPartitionChanged);
+            highestPartitionChanged = Math.Max(_partitionIndexChangedByRemove, highestPartitionChanged);
+        }
+        if (_partitionIndexInserted >= 0)
+        {
+            lowestPartitionChanged = Math.Min(_partitionIndexInserted, lowestPartitionChanged);
+            highestPartitionChanged = Math.Max(_partitionIndexInserted, highestPartitionChanged);
+        }
+        highestPartitionChanged = Math.Min(highestPartitionChanged, _partitions.Count - 1);
+        for (var i = lowestPartitionChanged; i <= highestPartitionChanged; i++)
+        {
+            var partition = _partitions[i];
+            partition.LowerBound = i == 0 ? 0 : _partitions[i - 1].LowerBound + _partitions[i - 1].Count;
         }
     }
 
@@ -313,8 +312,7 @@ public partial class SlidingWindowRankerParallel<T> where T : IComparable<T>
         lock (_lock)
         {
             CountPartitionSplits++;
-            var indexWithinPartitionForInsert = _partitionForInsert.GetLowerBoundWithinPartition(_valueToInsert);
-            var rightPartition = _partitionForInsert.SplitAndInsert(_valueToInsert, indexWithinPartitionForInsert);
+            var rightPartition = _partitionForInsert.SplitAndInsert(_valueToInsert);
             _partitions.Insert(_partitionForInsertIndex + 1, rightPartition);
             _partitionForInsertIndex++;
             _partitionIndexInserted = _partitionForInsertIndex;

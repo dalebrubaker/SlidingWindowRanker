@@ -17,7 +17,7 @@ public class BenchmarkSlidingWindowRanker
     [Params(400000)]
     public int NumberOfTestValues { get; set; }
 
-    [Params(2048)]
+    [Params(128)]
     public int NumberOfPartitions { get; set; }
 
     private int WindowSize => NumberOfTestValues / 10;

@@ -14,12 +14,6 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     internal List<Partition<T>> TestPartitions => _partitions;
     internal List<T> TestValues => GetValues();
 
-    internal int TestPartitionIndexChangedByInsert => _partitionIndexChangedByInsert;
-
-    internal int TestPartitionIndexChangedByRemove => _partitionIndexChangedByRemove;
-
-    internal int TestPartitionIndexInserted => _partitionIndexInserted;
-
     /// <summary>
     /// For debugging, return the values in all partitions.
     /// </summary>
@@ -31,37 +25,21 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
     internal void Test_DoInsert(T valueToInsert)
     {
-        InitializeState();
-        _valueToInsert = valueToInsert;
-        DoInsert();
-    }
-
-    internal void Test_DoRemove(T valueToRemove)
-    {
-        InitializeState();
-        _valueToRemove = valueToRemove;
-        DoRemove();
-    }
-
-    internal void Test_AdjustPartitionsLowerBounds(bool didInsert, bool didRemove)
-    {
-        _partitionForInsert = null;
-        _partitionForRemove = null;
 #if DEBUG
         _debugMessageRemove = null;
         _debugMessageInsert = null;
 #endif
+        _valueToInsert = valueToInsert;
+        DoInsert(valueToInsert);
+    }
 
-        if (!didInsert)
-        {
-            _partitionIndexChangedByInsert = -1; // Not set yet
-            _partitionIndexInserted = -1; // Not set yet
-        }
-        if (!didRemove)
-        {
-            _partitionIndexChangedByRemove = -1; // Not set yet
-        }
-        AdjustPartitionsLowerBounds();
+    internal void Test_DoRemove(T valueToRemove)
+    {
+#if DEBUG
+        _debugMessageRemove = null;
+        _debugMessageInsert = null;
+#endif
+        DoRemove(valueToRemove);
     }
 
     /// <summary>
