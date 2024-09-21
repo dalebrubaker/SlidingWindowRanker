@@ -14,11 +14,10 @@ public class BenchmarkSlidingWindowRanker
     private SlidingWindowRanker<double> _ranker;
     private List<double> _valuesToRank;
 
-    //[Params(1000, 10000)]
-    [Params(1000, 10000, 100000)] //40000)]
+    [Params(100000)]
     public int NumberOfTestValues { get; set; }
 
-    [Params(1, 2, 4, 8)] //200)]
+    [Params(8)]
     public int NumberOfPartitions { get; set; }
 
     private int WindowSize => NumberOfTestValues / 10;
