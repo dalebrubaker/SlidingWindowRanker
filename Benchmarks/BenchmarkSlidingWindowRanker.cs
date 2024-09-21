@@ -26,22 +26,22 @@ public class BenchmarkSlidingWindowRanker
     public void Setup()
     {
         var random = new Random();
-        _valuesToRank = new List<double>(NumberOfTestValues);
+        var valuesToRank = new List<double>(NumberOfTestValues);
         for (var i = 0; i < NumberOfTestValues; i++)
         {
             var value = random.NextDouble() * 100;
             value = Math.Round(value, 1); // for easier debugging
-            _valuesToRank.Add(value);
+            valuesToRank.Add(value);
         }
-        s_ValuesToRankStr = string.Join(',', _valuesToRank);
+        s_ValuesToRankStr = string.Join(',', valuesToRank);
+        _valuesToRank = [..valuesToRank];
+        var initialValues = _valuesToRank.Take(WindowSize).ToList();
+        _ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
     }
 
     [Benchmark]
     public void RankValues()
     {
-        var valuesToRank = new List<double>(_valuesToRank);
-        var initialValues = valuesToRank.Take(WindowSize).ToList();
-        _ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
         for (var index = WindowSize; index < NumberOfTestValues; index++)
         {
             var value = _valuesToRank[index];
