@@ -33,7 +33,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="windowSize">Default -1 means to use initialValues.Count. Must be no smaller than initialValues</param>
     /// <param name="isSorted">true means the initialValues have already been sorted, thus preventing an additional sort here</param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public SlidingWindowRanker(List<T> initialValues, int partitionCount, int windowSize = -1, bool isSorted = false)
+    public SlidingWindowRanker(List<T> initialValues, int partitionCount = -1, int windowSize = -1, bool isSorted = false)
     {
         if (windowSize < 0)
         {
@@ -48,7 +48,12 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         }
         if (partitionCount <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(partitionCount), "The number of partitions must be greater than 0.");
+            partitionCount = (int)Math.Sqrt(_windowSize);
+        }
+        if (partitionCount < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(partitionCount),
+                "The partition count must be at least 1, in order to have values to rank against.");
         }
         _valueQueue = new Queue<T>(initialValues);
         List<T> values;
