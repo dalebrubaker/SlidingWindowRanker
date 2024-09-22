@@ -1,6 +1,6 @@
 ﻿namespace SlidingWindowRanker;
 
-internal partial class Partition<T> : IComparable<Partition<T>> where T : IComparable<T>
+internal partial class Partition<T> where T : IComparable<T>
 {
     private readonly int _partitionSize;
 
