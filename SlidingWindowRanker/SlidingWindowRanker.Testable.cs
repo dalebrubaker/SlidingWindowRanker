@@ -24,7 +24,8 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         _debugMessageRemove = null;
         _debugMessageInsert = null;
 #endif
-        var (partitionForInsert, partitionIndexForInsert) = FindPartitionContaining(valueToInsert);
+        var partitionIndexForInsert = FindPartitionContaining(valueToInsert);
+        var partitionForInsert = _partitions[partitionIndexForInsert];
         if (partitionForInsert.NeedsSplitting)
         {
             SplitPartition(partitionForInsert, ref partitionIndexForInsert, valueToInsert);
@@ -41,7 +42,8 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         _debugMessageRemove = null;
         _debugMessageInsert = null;
 #endif
-        var (partitionForRemove, partitionIndexForRemove) = FindPartitionContaining(valueToRemove);
+        var partitionIndexForRemove = FindPartitionContaining(valueToRemove);
+        var partitionForRemove = _partitions[partitionIndexForRemove];
         if (partitionForRemove.Count == 1)
         {
             // The partition holding the value to remove will be empty after the remove

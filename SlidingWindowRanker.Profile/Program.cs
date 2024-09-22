@@ -2,7 +2,7 @@
 using SlidingWindowRanker;
 
 
-const int NumberOfTestValues = 1000000;
+const int NumberOfTestValues = 400000;
 const int NumberOfPartitions = 128;
 const int WindowSize = NumberOfTestValues / 10;
 var valuesToRank = new List<double>(NumberOfTestValues);
