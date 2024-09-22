@@ -227,3 +227,173 @@ After changing to pass parameters instead of using fields:
 | Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
 |----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
 | RankValues | 400000             | 128                | 127.6 ms | 0.69 ms | 0.64 ms |    1 |                    - |                - |      16 B |
+```
+
+```
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
+Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
+.NET SDK 8.0.400
+  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+
+
+```
+New baseline 20240921 single-threaded.
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 1000000            | 128                | 382.6 ms | 3.18 ms | 2.98 ms |    1 |                    - |                - |     400 B |
+| RankValues | 1000000            | 256                | 392.8 ms | 1.88 ms | 1.67 ms |    1 |                    - |                - |     400 B |
+| RankValues | 1000000            | 512                | 488.4 ms | 2.67 ms | 2.37 ms |    2 |                    - |                - |     400 B |
+| RankValues | 1000000            | 1024               | 635.2 ms | 5.08 ms | 4.51 ms |    3 |                    - |                - |     400 B |
+
+```
+
+After Refactor GetRank to split and remove partitions before potential parallel DoInsert and DoRemove methods
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 1000000            | 128                | 375.2 ms | 7.00 ms | 6.88 ms |    1 |                    - |                - |     400 B |
+| RankValues | 1000000            | 256                | 421.1 ms | 2.35 ms | 2.08 ms |    2 |                    - |                - |     400 B |
+| RankValues | 1000000            | 512                | 628.0 ms | 4.89 ms | 4.58 ms |    3 |                    - |                - |     400 B |
+| RankValues | 1000000            | 1024               | 923.3 ms | 9.00 ms | 8.41 ms |    4 |                    - |                - |     400 B |
+
+Added a lock to all Partition.Values access
+
+```
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error    | StdDev   | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 1000000            | 128                |  2.852 s | 0.0251 s | 0.0235 s |    1 |                    - |                - |     400 B |
+| RankValues | 1000000            | 256                |  4.938 s | 0.0445 s | 0.0417 s |    2 |                    - |                - |     400 B |
+| RankValues | 1000000            | 512                |  9.030 s | 0.0421 s | 0.0328 s |    3 |                    - |                - |     400 B |
+| RankValues | 1000000            | 1024               | 17.236 s | 0.1177 s | 0.0919 s |    4 |                    - |                - |     400 B |
+
+So Threading is a bad idea!
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 128                | 127.6 ms | 0.69 ms | 0.64 ms |    1 |                    - |                - |      16 B |
+
+
+Tried putting the Insert/Remove/Adjust on a separate thread, with SemaphoreSlim preventing re-entry
+5 times slower
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Gen0      | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|----------:|
+| RankValues | 400000             | 128                | 667.1 ms | 2.41 ms | 2.25 ms |    1 |          720000.0000 |           1.0000 | 7000.0000 | 126.34 MB |
+
+```
+Made a big improvement in AdjustPartitionsLowerBounds and handling of SplitPartition and RemovePartition
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 128                | 108.7 ms | 1.13 ms | 1.06 ms |    1 |                    - |                - |      80 B |
+
+Tried to have just one extra thread doing Insert and Remove after the rank is returned to the caller
+```
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Gen0      | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|----------:|
+| RankValues | 400000             | 128                | 598.6 ms | 4.33 ms | 4.05 ms |    1 |          720000.0000 |           2.0000 | 7000.0000 |  123.6 MB |
+
+```
+
+
+
+New baseline 20240922
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 128                | 106.2 ms | 0.65 ms | 0.61 ms |    1 |                    - |                - |      80 B |
+```
+
+
+```
+
+Simplified GetRank() to NOT calculate rank before inserts and removes
+
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 128                | 106.3 ms | 0.37 ms | 0.31 ms |    1 |                    - |                - |      80 B |
+
+```
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
+Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
+.NET SDK 8.0.400
+  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean        | Error    | StdDev   | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |------------:|---------:|---------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 400000             | 128                |    105.3 ms |  0.38 ms |  0.34 ms |    1 |                    - |                - |      80 B |
+| RankValues | 400000             | 64                 |    110.2 ms |  0.26 ms |  0.25 ms |    2 |                    - |                - |      80 B |
+| RankValues | 400000             | 256                |    111.6 ms |  1.25 ms |  1.17 ms |    2 |                    - |                - |      80 B |
+| RankValues | 400000             | 512                |    124.9 ms |  1.50 ms |  1.40 ms |    3 |                    - |                - |      80 B |
+| RankValues | 400000             | 32                 |    238.4 ms |  0.69 ms |  0.65 ms |    4 |                    - |                - |     133 B |
+| RankValues | 400000             | 16                 |    700.1 ms |  1.74 ms |  1.54 ms |    5 |                    - |                - |     400 B |
+| RankValues | 400000             | 8                  |  1,476.9 ms |  2.63 ms |  2.46 ms |    6 |                    - |                - |     400 B |
+| RankValues | 400000             | 4                  |  2,950.8 ms | 23.21 ms | 21.71 ms |    7 |                    - |                - |     400 B |
+| RankValues | 400000             | 2                  |  5,849.8 ms | 47.26 ms | 44.21 ms |    8 |                    - |                - |     400 B |
+| RankValues | 400000             | 1                  | 11,601.0 ms | 82.77 ms | 77.42 ms |    9 |                    - |                - |     400 B |
+
+```
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
+Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
+.NET SDK 8.0.400
+  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean       | Error     | StdDev    | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |-----------:|----------:|----------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 40000              | 64                 |   7.610 ms | 0.0998 ms | 0.0933 ms |    1 |                    - |                - |       3 B |
+| RankValues | 40000              | 128                |   7.773 ms | 0.0395 ms | 0.0309 ms |    1 |                    - |                - |     284 B |
+| RankValues | 40000              | 32                 |   7.778 ms | 0.0591 ms | 0.0553 ms |    1 |                    - |                - |       3 B |
+| RankValues | 40000              | 16                 |   7.873 ms | 0.0093 ms | 0.0083 ms |    1 |                    - |                - |       6 B |
+| RankValues | 40000              | 8                  |   8.103 ms | 0.0255 ms | 0.0199 ms |    2 |                    - |                - |       6 B |
+| RankValues | 40000              | 256                |   9.141 ms | 0.0491 ms | 0.0459 ms |    3 |                    - |                - |   14564 B |
+| RankValues | 40000              | 4                  |   9.323 ms | 0.0607 ms | 0.0568 ms |    3 |                    - |                - |       1 B |
+| RankValues | 40000              | 512                |  11.191 ms | 0.0281 ms | 0.0234 ms |    4 |                    - |                - |   74206 B |
+| RankValues | 40000              | 2                  |  49.947 ms | 0.4465 ms | 0.4177 ms |    5 |                    - |                - |      36 B |
+| RankValues | 40000              | 1                  | 111.847 ms | 0.1118 ms | 0.1046 ms |    6 |                    - |                - |      80 B |
+
+```
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
+Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
+.NET SDK 8.0.400
+  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+
+
+```
+| Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Gen0   | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|-------:|---------------------:|-----------------:|----------:|
+| RankValues | 4000               | 512                |       NA |      NA |      NA |    ? |     NA |                   NA |               NA |        NA |
+| RankValues | 4000               | 16                 | 543.4 μs | 1.63 μs | 1.53 μs |    1 |      - |                    - |                - |     712 B |
+| RankValues | 4000               | 32                 | 549.0 μs | 6.66 μs | 6.23 μs |    1 |      - |                    - |                - |    3600 B |
+| RankValues | 4000               | 8                  | 559.9 μs | 3.19 μs | 2.99 μs |    1 |      - |                    - |                - |     437 B |
+| RankValues | 4000               | 64                 | 562.2 μs | 2.15 μs | 2.01 μs |    1 |      - |                    - |                - |   16128 B |
+| RankValues | 4000               | 256                | 579.1 μs | 0.66 μs | 0.56 μs |    2 |      - |                    - |                - |     310 B |
+| RankValues | 4000               | 1                  | 596.6 μs | 1.70 μs | 1.42 μs |    3 |      - |                    - |                - |         - |
+| RankValues | 4000               | 4                  | 603.5 μs | 1.12 μs | 0.99 μs |    3 |      - |                    - |                - |     417 B |
+| RankValues | 4000               | 128                | 605.1 μs | 7.31 μs | 6.83 μs |    3 | 2.9297 |                    - |                - |   56120 B |
+| RankValues | 4000               | 2                  | 621.7 μs | 2.70 μs | 2.53 μs |    3 |      - |                    - |                - |     408 B |
+
+Benchmarks with issues:
+  BenchmarkSlidingWindowRanker.RankValues: DefaultJob [NumberOfTestValues=4000, NumberOfPartitions=512]
