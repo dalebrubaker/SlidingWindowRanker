@@ -124,15 +124,18 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
         var partitionIndexForInsert = FindPartitionContaining(valueToInsert);
         var partitionForInsert = _partitions[partitionIndexForInsert];
-        if (partitionForInsert.NeedsSplitting)
-        {
-            SplitPartition(partitionForInsert, ref partitionIndexForInsert, valueToInsert);
-        }
-        else
-        {
-            partitionForInsert.Insert(valueToInsert);
-        }
+        DoInsert(valueToInsert, partitionForInsert, ref partitionIndexForInsert);
         var partitionIndexForRemove = IsQueueFull ? FindPartitionContaining(valueToRemove) : int.MaxValue;
+        DoRemove(partitionIndexForRemove, partitionIndexForInsert, valueToRemove);
+        AdjustPartitionsLowerBounds(partitionIndexForInsert, partitionIndexForRemove);
+        var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToInsert);
+        var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
+        var rank = (double)lowerBound / _valueQueue.Count; // Use _valueQueue.Count instead of _windowSize because the window may not be full yet
+        return rank;
+    }
+
+    private void DoRemove(int partitionIndexForRemove, int partitionIndexForInsert, T valueToRemove)
+    {
         if (IsQueueFull)
         {
             var partitionForRemove = _partitions[partitionIndexForRemove];
@@ -164,11 +167,18 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
                 DoRemove(valueToRemove, partitionForRemove);
             }
         }
-        AdjustPartitionsLowerBounds(partitionIndexForInsert, partitionIndexForRemove);
-        var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToInsert);
-        var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
-        var rank = (double)lowerBound / _valueQueue.Count; // Use _valueQueue.Count instead of _windowSize because the window may not be full yet
-        return rank;
+    }
+
+    private void DoInsert(T valueToInsert, Partition<T> partitionForInsert, ref int partitionIndexForInsert)
+    {
+        if (partitionForInsert.NeedsSplitting)
+        {
+            SplitPartition(partitionForInsert, ref partitionIndexForInsert, valueToInsert);
+        }
+        else
+        {
+            partitionForInsert.Insert(valueToInsert);
+        }
     }
 
     private void SplitPartition(Partition<T> partitionForInsert, ref int partitionIndexForInsert, T valueToInsert)
