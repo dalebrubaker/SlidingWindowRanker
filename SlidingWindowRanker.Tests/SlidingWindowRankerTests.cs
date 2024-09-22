@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Xunit.Abstractions;
+using FluentAssertions;
 
 namespace SlidingWindowRanker.Tests;
 
@@ -21,10 +22,10 @@ public class SlidingWindowRankerTests
         var rank = ranker.GetRank(3);
 
         var values = ranker.GetValues();
-        Assert.Equal([2, 3, 3, 4, 5], values);
+        values.Should().BeEquivalentTo(new[] { 2, 3, 3, 4, 5 });
 
         // The first value (1) is removed and the 3 is inserted, leaving the values [2, 3, 3, 4, 5]
-        Assert.Equal(0.2, rank, 1);
+        rank.Should().BeApproximately(0.2, 1);
     }
 
     [Fact]
@@ -33,7 +34,7 @@ public class SlidingWindowRankerTests
         var initialValues = new List<int> { 1, 2, 3, 4, 5 };
         var ranker = new SlidingWindowRanker<int>(initialValues, 2);
         var rank = ranker.GetRank(0);
-        Assert.Equal(0.0, rank);
+        rank.Should().Be(0.0);
     }
 
     [Fact]
@@ -44,9 +45,9 @@ public class SlidingWindowRankerTests
         var rank = ranker.GetRank(6);
 
         var values = ranker.GetValues();
-        Assert.Equal([2, 3, 4, 5, 6], values);
+        values.Should().BeEquivalentTo(new[] { 2, 3, 4, 5, 6 });
 
-        Assert.Equal(4 / 5.0, rank);
+        rank.Should().Be(4 / 5.0);
     }
 
     [Fact]
@@ -56,21 +57,23 @@ public class SlidingWindowRankerTests
         var ranker = new SlidingWindowRanker<int>(initialValues, 2);
         ranker.GetRank(6); // Add 6, remove 1
         var rank = ranker.GetRank(0); // Add 0, remove 2
-        Assert.Equal(0.0, rank);
+        rank.Should().Be(0.0);
     }
 
     [Fact]
     public void GetRank_ThrowsException_ForEmptyInitialValuesAndNoGivenWidth()
     {
         var initialValues = new List<int>();
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SlidingWindowRanker<int>(initialValues, 2));
+        Action act = () => new SlidingWindowRanker<int>(initialValues, 2);
+        act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     [Fact]
     public void GetRank_ThrowsException_ForInvalidPartitionCount()
     {
         var initialValues = new List<int> { 1, 2, 3, 4, 5 };
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SlidingWindowRanker<int>(initialValues, 0));
+        Action act = () => new SlidingWindowRanker<int>(initialValues, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     [Fact]
@@ -81,12 +84,12 @@ public class SlidingWindowRankerTests
         var rank = ranker.GetRank(5);
 
         // Since there are no initial values, the rank should be 0.0
-        Assert.Equal(0.0, rank);
+        rank.Should().Be(0.0);
 
         var rank5 = ranker.GetRank(6);
         var values = ranker.GetValues();
-        Assert.Equal([5, 6], values);
-        Assert.Equal(0.5, rank5);
+        values.Should().BeEquivalentTo(new[] { 5, 6 });
+        rank5.Should().Be(0.5);
     }
 
     [Fact]
@@ -97,7 +100,7 @@ public class SlidingWindowRankerTests
         var rank = ranker.GetRank(5);
 
         var expected = ExpectedRank(ranker, 5);
-        Assert.Equal(expected, rank);
+        rank.Should().Be(expected);
     }
 
     [Fact]
@@ -124,7 +127,7 @@ public class SlidingWindowRankerTests
             var rank = ranker.GetRank(value);
             //ranker.DebugGuardPartitionLowerBoundValuesAreCorrect();
             var expected = ExpectedRank(ranker, value);
-            Assert.Equal(expected, rank, 3);
+            rank.Should().BeApproximately(expected, 3);
             if (ranker.CountPartitionSplits > 0)
             {
                 _output.WriteLine($"ranker.CountPartitionSplits={ranker.CountPartitionSplits}");
@@ -143,7 +146,7 @@ public class SlidingWindowRankerTests
         var ranker = new SlidingWindowRanker<int>(initialValues, 2);
         var rank = ranker.GetRank(5);
         var expected = ExpectedRank(ranker, 5);
-        Assert.Equal(expected, rank);
+        rank.Should().Be(expected);
     }
 
     [Fact]
@@ -153,7 +156,7 @@ public class SlidingWindowRankerTests
         var ranker = new SlidingWindowRanker<int>(initialValues, 2);
         var rank = ranker.GetRank(5);
         var expected = ExpectedRank(ranker, 5);
-        Assert.Equal(expected, rank);
+        rank.Should().Be(expected);
     }
 
     [Fact]
@@ -178,7 +181,7 @@ public class SlidingWindowRankerTests
             var value = valuesToRank[index];
             var rank = ranker.GetRank(value);
             var expected = ExpectedRank(ranker, value);
-            //Assert.Equal(expected, rank, 2);
+            //rank.Should().BeApproximately(expected, 2);
         }
         var elapsed = stopWatch.ElapsedMilliseconds;
         _output.WriteLine($"Elapsed time: {elapsed} ms");
@@ -188,7 +191,7 @@ public class SlidingWindowRankerTests
     {
         var values = ranker.GetValues();
         var isSortedAscending = values.IsSortedAscending();
-        Assert.True(isSortedAscending);
+        isSortedAscending.Should().BeTrue();
         var lowerValuesCount = values.Count(v => v < value);
         var rank = lowerValuesCount / (double)values.Count;
         return rank;

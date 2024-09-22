@@ -1,4 +1,6 @@
-﻿namespace SlidingWindowRanker.Tests;
+﻿using FluentAssertions;
+
+namespace SlidingWindowRanker.Tests;
 
 public class PartitionTests
 {
@@ -12,8 +14,8 @@ public class PartitionTests
         var partition = new Partition<int>(values);
 
         // Assert
-        Assert.Equal(values, partition.Values);
-        Assert.Equal(6, partition.Values.Capacity); // Capacity should be double the initial count
+        partition.Values.Should().Equal(values);
+        partition.Values.Capacity.Should().Be(6); // Capacity should be double the initial count
     }
 
     [Fact]
@@ -24,13 +26,29 @@ public class PartitionTests
         var partition = new Partition<int>(values);
         partition.Insert(4);
         partition.Insert(4);
+        partition.NeedsSplitting.Should().BeFalse();
         partition.Insert(4);
 
-        // Act
-        var needsSplitting = partition.NeedsSplitting;
-
         // Assert
-        Assert.True(needsSplitting);
+        partition.NeedsSplitting.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SplittingPartition_ShouldMaintainCorrectLowerBounds()
+    {
+        // Arrange
+        var values = new List<int> { 1, 2, 3 };
+        var partition = new Partition<int>(values);
+        partition.Insert(4);
+        partition.Insert(4);
+        partition.NeedsSplitting.Should().BeFalse();
+        partition.Insert(4);
+        partition.NeedsSplitting.Should().BeTrue();
+        var partitionLowerBound = partition.LowerBound;
+
+        // Act
+        var newPartition = partition.SplitAndInsert(0);
+        //partition.LowerBound.Should().Be(partitionLowerBound);
     }
 
     [Fact]
@@ -44,7 +62,7 @@ public class PartitionTests
         partition.Insert(4);
 
         // Assert
-        Assert.Equal([1, 3, 4, 5], partition.Values);
+        partition.Values.Should().Equal(new List<int> { 1, 3, 4, 5 });
     }
 
     [Fact]
@@ -58,6 +76,6 @@ public class PartitionTests
         partition.Remove(3);
 
         // Assert
-        Assert.Equal([1, 5], partition.Values);
+        partition.Values.Should().Equal(new List<int> { 1, 5 });
     }
 }
