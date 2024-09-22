@@ -27,7 +27,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         var (partitionForInsert, partitionIndexForInsert) = FindPartitionContaining(valueToInsert);
         if (partitionForInsert.NeedsSplitting)
         {
-            SplitPartition(partitionForInsert, partitionIndexForInsert, valueToInsert);
+            SplitPartition(partitionForInsert, ref partitionIndexForInsert, valueToInsert);
         }
         else
         {
@@ -106,9 +106,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         }
 #endif
     }
-    
-    
-    
+
 #if DEBUG
     private string _debugMessageInsert;
     private string _debugMessageRemove;

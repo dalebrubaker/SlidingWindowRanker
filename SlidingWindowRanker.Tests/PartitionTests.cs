@@ -47,8 +47,13 @@ public class PartitionTests
         var partitionLowerBound = partition.LowerBound;
 
         // Act
-        var newPartition = partition.SplitAndInsert(0);
-        //partition.LowerBound.Should().Be(partitionLowerBound);
+        var partitionCount = partition.Count;
+        var (newPartition, isNewValueInRightPartition) = partition.SplitAndInsert(0);
+        partition.LowerBound.Should().Be(partitionLowerBound);
+        newPartition.LowerBound.Should().Be(partitionLowerBound + partitionCount / 2);
+
+        var lowerBoundOfValueInPartition = partition.Values.LowerBound(0);
+        lowerBoundOfValueInPartition.Should().Be(0, "the value should be in the old (left) partition");
     }
 
     [Fact]

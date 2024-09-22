@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
-using Xunit.Abstractions;
 using FluentAssertions;
+using Xunit.Abstractions;
 
 namespace SlidingWindowRanker.Tests;
 
@@ -121,7 +121,7 @@ public class SlidingWindowRankerTests
         {
             ranker.DebugGuardPartitionLowerBoundValuesAreCorrect();
             var value = valuesToRank[index];
-            if (index >= 110)
+            if (index >= 109)
             {
             }
             var rank = ranker.GetRank(value);
