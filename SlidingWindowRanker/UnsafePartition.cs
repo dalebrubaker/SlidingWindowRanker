@@ -2,75 +2,112 @@
 
 namespace SlidingWindowRanker;
 
-internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IComparable<T>
+internal unsafe class UnsafePartition<T> : IPartition<T>, IDisposable where T : unmanaged, IComparable<T>
 {
     private readonly int _capacity;
-    private readonly T* _values;
+    private readonly int _left;
+    private readonly int _partitionSize;
+    private readonly int _right;
+    private bool _disposed;
+    private GCHandle _valuesHandle;
+    private T* _valuesPtr;
+    private readonly int _capacityLeft;
+    private readonly int _capacityRight;
 
-    public UnsafePartition(int initialCapacity)
+    public UnsafePartition(List<T> values, int partitionSize = -1)
     {
-        _capacity = initialCapacity;
-        _values = (T*)Marshal.AllocHGlobal(_capacity * sizeof(T));
-        Count = 0;
-        LowerBound = 0;
+        _partitionSize = partitionSize < 0 ? values.Count : partitionSize;
+        if (_partitionSize == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(partitionSize), "The partition size must be greater than 0.");
+        }
+        _capacity = _partitionSize * 2; // Leave room to grow
+        _capacityLeft = 0;
+        _capacityRight = _capacity - 1;
+
+        // Center the initial values in this partition
+        var middle = _capacity / 2;
+        _left = middle - _partitionSize / 2;
+        _right = _left + _partitionSize - 1;
+
+        // Pin the values array
+        _valuesHandle = GCHandle.Alloc(values.ToArray(), GCHandleType.Pinned);
+        _valuesPtr = (T*)Marshal.AllocHGlobal(_capacity * sizeof(T));
+        if (_valuesPtr == null)
+        {
+            throw new OutOfMemoryException("Failed to allocate memory for partition.");
+        }
+        var valuesArrayPtr = (T*)_valuesHandle.AddrOfPinnedObject();
+        if (valuesArrayPtr == null)
+        {
+            throw new InvalidOperationException("Failed to get pointer to values.");
+        }
+        for (var i = _left; i <= _right; i++)
+        {
+            _valuesPtr[i] = valuesArrayPtr[i];
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     public int LowerBound { get; set; }
 
-    public T LowestValue => Count > 0 ? _values[0] : default;
+    public T LowestValue => _valuesPtr[_left];
 
-    public T HighestValue => Count > 0 ? _values[Count - 1] : default;
+    public T HighestValue => _valuesPtr[_right];
 
-    public int Count { get; private set; }
+    public int Count => _right - _left + 1;
 
     public bool IsFull => Count >= _capacity;
 
     public int CompareTo(Partition<T> other)
     {
-        // Implement comparison logic based on your requirements
-        return 0;
+        return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
     }
 
     public void Insert(T value)
     {
         if (IsFull)
         {
-            // Handle partition splitting or resizing
             throw new InvalidOperationException("Partition is full.");
         }
 
-        // Insert value in sorted order. In this case we don't need LowerBound because we insert anywhere within a range of duplicate values. 
-        var index = UnsafeArrayHelper.BinarySearch(_values, 0, Count, value);
+        var index = UnsafeArrayHelper.BinarySearch(_valuesPtr, 0, Count, value);
         if (index < 0)
         {
             index = ~index; // Get the insertion point
         }
 
-        // Shift elements to make space
         for (var i = Count; i > index; i--)
         {
-            _values[i] = _values[i - 1];
+            _valuesPtr[i] = _valuesPtr[i - 1];
         }
-
-        _values[index] = value;
-        Count++;
+        _valuesPtr[index] = value;
+        // Increment Count
     }
 
     public void Remove(T value)
     {
-        // Remove value and maintain sorted order. In this case we don't need LowerBound because we remove anywhere within a range of duplicate values. 
-        var index = UnsafeArrayHelper.BinarySearch(_values, 0, Count, value);
+        if (Count <= 1)
+        {
+            throw new SlidingWindowRankerException("Partition has only one value which cannot be removed. Remove the partition instead.");
+        }
+
+        var index = UnsafeArrayHelper.BinarySearch(_valuesPtr, 0, Count, value);
         if (index < 0)
         {
             throw new SlidingWindowRankerException($"Value {value} not found in partition.");
         }
 
-        // Shift elements to fill the gap
         for (var i = index; i < Count - 1; i++)
         {
-            _values[i] = _values[i + 1];
+            _valuesPtr[i] = _valuesPtr[i + 1];
         }
-        Count--;
+        // Decrement Count
     }
 
     public Partition<T> SplitAndInsert(T valueToInsert)
@@ -87,15 +124,46 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
 
     public bool Contains(T value)
     {
-        var index = UnsafeArrayHelper.BinarySearch(_values, 0, Count, value);
+        var index = UnsafeArrayHelper.BinarySearch(_valuesPtr, 0, Count, value);
         return index >= 0;
+    }
+
+    public List<T> Values
+    {
+        get
+        {
+            if (Count == 0)
+            {
+                return new List<T>();
+            }
+            var result = new List<T>(Count);
+            for (var i = _left; i <= _right; i++)
+            {
+                result.Add(_valuesPtr[i]);
+            }
+            return result;
+        }
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (_valuesPtr != null)
+            {
+                Marshal.FreeHGlobal((IntPtr)_valuesPtr);
+                _valuesPtr = null; // Avoid dangling pointer
+            }
+            if (_valuesHandle.IsAllocated)
+            {
+                _valuesHandle.Free();
+            }
+            _disposed = true;
+        }
     }
 
     ~UnsafePartition()
     {
-        if (_values != null)
-        {
-            Marshal.FreeHGlobal((IntPtr)_values);
-        }
+        Dispose(false);
     }
 }
