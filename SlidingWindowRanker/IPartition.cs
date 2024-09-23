@@ -47,4 +47,6 @@ internal interface IPartition<T> where T : IComparable<T>
     int GetLowerBoundWithinPartition(T value);
     
     bool Contains(T value);
+    
+    List<T> Values { get; }
 }
