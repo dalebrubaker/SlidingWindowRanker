@@ -133,7 +133,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         var partitionForInsert = _partitions[partitionIndexForInsert];
         DoInsert(valueToInsert, partitionForInsert, ref partitionIndexForInsert);
         var partitionIndexForRemove = IsQueueFull ? FindPartitionContaining(valueToRemove) : int.MaxValue;
-        DoRemove(partitionIndexForRemove, partitionIndexForInsert, valueToRemove);
+        DoRemove(ref partitionIndexForRemove, ref partitionIndexForInsert, valueToRemove);
         AdjustPartitionsLowerBounds(partitionIndexForInsert, partitionIndexForRemove);
         var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToInsert);
         var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
@@ -141,7 +141,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         return rank;
     }
 
-    private void DoRemove(int partitionIndexForRemove, int partitionIndexForInsert, T valueToRemove)
+    private void DoRemove(ref int partitionIndexForRemove, ref int partitionIndexForInsert, T valueToRemove)
     {
         if (IsQueueFull)
         {
@@ -166,6 +166,14 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
                             var previousPartition = _partitions[partitionIndexForRemove - 1];
                             partition.LowerBound = previousPartition.LowerBound + previousPartition.Count;
                         }
+                    }
+                    if (partitionIndexForRemove < partitionIndexForInsert)
+                    {
+                        partitionIndexForInsert--;
+                    }
+                    else
+                    {
+                        partitionIndexForRemove--;
                     }
                 }
             }
@@ -335,6 +343,6 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
     public override string ToString()
     {
-        return $"#values={_valueQueue.Count:N0}, #partitions={_partitions.Count} _windowSize={_windowSize:N0}";
+        return $"_windowSize={_windowSize:N0} #values={_valueQueue.Count:N0} #partitions={_partitions.Count} #splits={CountPartitionSplits:N0} #removes={CountPartitionRemoves:N0}";
     }
 }
