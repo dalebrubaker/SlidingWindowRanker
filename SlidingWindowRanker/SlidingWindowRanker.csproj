@@ -14,6 +14,7 @@
 		<RepositoryUrl>https://github.com/dalebrubaker/SlidingWindowRanker</RepositoryUrl>
 		<PackageReadmeFile>ReadMe.md</PackageReadmeFile>
 		<PackageLicenseFile>License.txt</PackageLicenseFile>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="..\ReadMe.md" Pack="true" PackagePath="\"/>
