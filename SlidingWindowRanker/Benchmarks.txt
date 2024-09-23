@@ -415,3 +415,22 @@ Benchmarks with issues:
 | RankValues | 1000000            | 1                            | 325.2 ms | 0.58 ms | 0.51 ms |    1 |                    - |                - |     200 B |
 | RankValues | 1000000            | 1.5                          | 326.8 ms | 1.41 ms | 1.31 ms |    1 |                    - |                - |     200 B |
 | RankValues | 1000000            | 0.5                          | 329.5 ms | 4.81 ms | 4.50 ms |    1 |                    - |                - |     200 B |
+
+```
+| Method     | NumberOfTestValues | MultipleOfNumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |----------------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 1000000            | 1.5                          | 323.9 ms | 1.07 ms | 1.00 ms |    1 |                    - |                - |     200 B |
+| RankValues | 1000000            | 0.5                          | 324.2 ms | 1.04 ms | 0.92 ms |    1 |                    - |                - |     200 B |
+| RankValues | 1000000            | 1                            | 324.5 ms | 1.99 ms | 1.86 ms |    1 |                    - |                - |     200 B |
+
+```
+| Method     | NumberOfTestValues | MultipleOfNumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |----------------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 1000000            | 1.75                         | 323.7 ms | 1.13 ms | 1.06 ms |    1 |                    - |                - |     200 B |
+| RankValues | 1000000            | 0.75                         | 324.5 ms | 0.81 ms | 0.72 ms |    1 |                    - |                - |     200 B |
+| RankValues | 1000000            | 0.25                         | 325.8 ms | 1.03 ms | 0.97 ms |    1 |                    - |                - |     200 B |
+| RankValues | 1000000            | 1                            | 326.6 ms | 2.66 ms | 2.49 ms |    1 |                    - |                - |     200 B |
+| RankValues | 1000000            | 2                            | 326.6 ms | 4.69 ms | 4.39 ms |    1 |                    - |                - |     200 B |
+| RankValues | 1000000            | 1.25                         | 327.8 ms | 1.74 ms | 1.54 ms |    1 |                    - |                - |     200 B |
+
+So currently the number of partitions is not really relavent.

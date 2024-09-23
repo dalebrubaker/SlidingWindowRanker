@@ -21,7 +21,7 @@ public class BenchmarkSlidingWindowRanker
 
     private int NumberOfPartitions => (int)Math.Sqrt(WindowSize);
 
-    [Params(0.5, 1.0, 1.5)]
+    [Params(0.25, 0.75, 1.0, 1.25, 1.75, 2.0)]
     public double MultipleOfNumberOfPartitions { get; set; }
 
     [GlobalSetup]
