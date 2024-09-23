@@ -108,7 +108,7 @@ public class SlidingWindowRankerTests
             valuesToRank.Add(i);
         }
         var indexToSplit = NumberOfTestValues - WindowSize;
-        var initialValues = valuesToRank.GetRange(indexToSplit,WindowSize).ToList();
+        var initialValues = valuesToRank.GetRange(indexToSplit, WindowSize).ToList();
         valuesToRank.RemoveRange(indexToSplit, valuesToRank.Count - indexToSplit);
         var ranker = new SlidingWindowRanker<int>(initialValues, NumberOfPartitions);
         for (var index = indexToSplit - 1; index >= 0; index--)
@@ -168,7 +168,7 @@ public class SlidingWindowRankerTests
             valuesToRank.Add(value);
         }
         var indexToSplit = NumberOfTestValues - WindowSize;
-        var initialValues = valuesToRank.GetRange(indexToSplit,WindowSize).ToList();
+        var initialValues = valuesToRank.GetRange(indexToSplit, WindowSize).ToList();
         valuesToRank.RemoveRange(indexToSplit, valuesToRank.Count - indexToSplit);
         var stopWatch = Stopwatch.StartNew();
         var ranker = new SlidingWindowRanker<int>(initialValues, NumberOfPartitions);
@@ -204,7 +204,7 @@ public class SlidingWindowRankerTests
 
         var valuesToRank = initialValuesStr.Split(',').Select(double.Parse).ToList();
         var indexToSplit = valuesToRank.Count - WindowSize;
-        var initialValues = valuesToRank.GetRange(indexToSplit,WindowSize).ToList();
+        var initialValues = valuesToRank.GetRange(indexToSplit, WindowSize).ToList();
         valuesToRank.RemoveRange(indexToSplit, valuesToRank.Count - indexToSplit);
         var ranker = new SlidingWindowRanker<double>(initialValues);
         for (var index = WindowSize; index < valuesToRank.Count; index++)
@@ -215,5 +215,31 @@ public class SlidingWindowRankerTests
             }
             var rank = ranker.GetRank(value);
         }
+    }
+
+    [Fact]
+    public void GetRank_ReturnsCorrectRank_ForMaxValue()
+    {
+        var initialValues = new List<int> { 1, 2, 3, 4, 5 };
+        var ranker = new SlidingWindowRanker<int>(initialValues, 2);
+        var rank = ranker.GetRank(int.MaxValue);
+
+        var values = ranker.GetValues();
+        values.Should().BeEquivalentTo(new[] { 2, 3, 4, 5, int.MaxValue });
+
+        rank.Should().Be(4 / 5.0);
+    }
+
+    [Fact]
+    public void GetRank_ReturnsCorrectRank_ForMinValue()
+    {
+        var initialValues = new List<int> { 1, 2, 3, 4, 5 };
+        var ranker = new SlidingWindowRanker<int>(initialValues, 2);
+        var rank = ranker.GetRank(int.MinValue);
+
+        var values = ranker.GetValues();
+        values.Should().BeEquivalentTo(new[] { int.MinValue, 2, 3, 4, 5 });
+
+        rank.Should().Be(0.0);
     }
 }
