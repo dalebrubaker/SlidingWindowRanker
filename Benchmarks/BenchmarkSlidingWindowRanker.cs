@@ -14,13 +14,15 @@ public class BenchmarkSlidingWindowRanker
     private SlidingWindowRanker<double> _ranker;
     private List<double> _valuesToRank;
 
-    [Params(400000)]
+    [Params(1000000)]
     public int NumberOfTestValues { get; set; }
 
-    [Params(128)]
-    public int NumberOfPartitions { get; set; }
-
     private int WindowSize => NumberOfTestValues / 10;
+
+    private int NumberOfPartitions => (int)Math.Sqrt(WindowSize);
+
+    [Params(0.5, 1.0, 1.5)]
+    public double MultipleOfNumberOfPartitions { get; set; }
 
     [GlobalSetup]
     public void Setup()

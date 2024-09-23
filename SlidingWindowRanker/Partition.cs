@@ -79,48 +79,53 @@ internal partial class Partition<T> where T : IComparable<T>
     }
 
     /// <summary>
-    /// Split this partition in half and return the index of the partition to insert the new value.
+    /// Split this partition at the index.
+    /// If <see cref="valueToInsert"/> is greater than or equal to the highest value in this partition, we add it to the right partition,
+    /// because we can't allow it to be empty. Otherwise, we add it to this partition.
     /// </summary>
     /// <param name="valueToInsert"></param>
-    /// <returns>the Partition to insert AFTER this partition and true if <see cref="valueToInsert"/> was inserted into the new partition,
-    /// or false if it was inserted into this partition</returns>
-    public (Partition<T> rightPartition, bool isNewValueInRightPartition) SplitAndInsert(T valueToInsert)
+    /// <returns>the Partition to insert AFTER this partition.</returns>
+    public Partition<T> SplitAndInsert(T valueToInsert)
     {
-        // Split the partition in half
-        var halfIndex = Values.Count / 2;
-        var rightValues = Values.GetRange(halfIndex, Values.Count - halfIndex);
-        Values.RemoveRange(halfIndex, Values.Count - halfIndex);
+        var splitIndex = Values.LowerBound(valueToInsert);
+        var isSplittingAtEnd = splitIndex == Values.Count;
+        var rightValues = Values.GetRange(splitIndex, Values.Count - splitIndex);
+        Values.RemoveRange(splitIndex, Values.Count - splitIndex);
 
         // Leave room to grow. But note that for small partitions,
         // rightValues.Capacity may be a minimum of 4 here because of List.DefaultCapacity
         rightValues.Capacity = Math.Max(rightValues.Capacity, _partitionSize * 2); // Leave room to grow
-        var rightPartition = new Partition<T>(rightValues, _partitionSize)
-        {
-            // The LowerBound of this partition doesn't change
-            // The new partition starts after this partition and its is set BEFORE the new value is inserted so that the 
-            LowerBound = LowerBound + Values.Count
-        };
+        var rightPartition = new Partition<T>(rightValues, _partitionSize);
 
-        // Now insert the new value into the correct partition
-        bool isNewValueInRightPartition;
-        if (valueToInsert.CompareTo(HighestValue) <= 0)
+        // The LowerBound of this partition doesn't change
+        // The new partition starts after this partition
+        // BUT ignore the Insert below because AdjustPartitionsLowerBounds needs to do the incrementing/decrementing properly
+        rightPartition.LowerBound = LowerBound + Values.Count;
+        if (isSplittingAtEnd)
         {
-            isNewValueInRightPartition = false;
-            Insert(valueToInsert);
+            // We must add the value into the right partition because we can't allow it to be empty
+            rightPartition.Insert(valueToInsert);
         }
         else
         {
-            isNewValueInRightPartition = true;
-            rightPartition.Insert(valueToInsert);
+            Insert(valueToInsert);
         }
-
-        return (rightPartition, isNewValueInRightPartition);
+        return rightPartition;
     }
 
     public int GetLowerBoundWithinPartition(T value)
     {
         var lowerBound = Values.LowerBound(value);
         return lowerBound;
+    }
+
+    public bool Contains(T value)
+    {
+        if (Values.Count == 0)
+        {
+            return false;
+        }
+        return value.CompareTo(Values[0]) >= 0 && value.CompareTo(Values[^1]) <= 0;
     }
 
     public override string ToString()
@@ -131,6 +136,6 @@ internal partial class Partition<T> where T : IComparable<T>
         {
             valuesStr += "...";
         }
-        return $"LowerBound={LowerBound:N0} #values={Values.Count:N0} {valuesStr} ";
+        return $"LowerBound={LowerBound:N0} #values={Values.Count:N0}: {valuesStr} ";
     }
 }

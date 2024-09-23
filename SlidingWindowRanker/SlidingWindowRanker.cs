@@ -29,7 +29,8 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// Initializes a new instance of the SlidingWindowRanker class.
     /// </summary>
     /// <param name="initialValues">The initial values to populate the sliding window.</param>
-    /// <param name="partitionCount">The number of partitions to divide the values into.</param>
+    /// <param name="partitionCount">The number of partitions to divide the values into. If less than or equal to zero,
+    ///     use the square root of the given or calculated window size, which is usually optimal or close to it.</param>
     /// <param name="windowSize">Default -1 means to use initialValues.Count. Must be no smaller than initialValues</param>
     /// <param name="isSorted">true means the initialValues have already been sorted, thus preventing an additional sort here</param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
@@ -83,6 +84,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         for (var i = 0; i < partitionCount; i++)
         {
             var startIndex = i * partitionSize;
+
             // Last partition gets the remaining values
             var getRangeCount = i == partitionCount - 1 ? values.Count - startIndex : partitionSize;
             var partitionValues = values.GetRange(startIndex, getRangeCount);
@@ -178,7 +180,13 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     {
         if (partitionForInsert.NeedsSplitting)
         {
-            SplitPartition(partitionForInsert, ref partitionIndexForInsert, valueToInsert);
+            var isSplittingAtEnd = valueToInsert.CompareTo(partitionForInsert.HighestValue) >= 0;
+            SplitPartition(partitionForInsert, partitionIndexForInsert, valueToInsert);
+            if (isSplittingAtEnd)
+            {
+                // The value to insert is the highest value in the partition, so we must insert it into the right partition
+                partitionIndexForInsert++;
+            }
         }
         else
         {
@@ -186,18 +194,13 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         }
     }
 
-    private void SplitPartition(Partition<T> partitionForInsert, ref int partitionIndexForInsert, T valueToInsert)
+    private void SplitPartition(Partition<T> partitionForInsert, int partitionIndexForInsert, T valueToInsert)
     {
         CountPartitionSplits++;
-        var (rightPartition, isNewValueInRightPartition) = partitionForInsert.SplitAndInsert(valueToInsert);
+        var rightPartition = partitionForInsert.SplitAndInsert(valueToInsert);
         _partitions.Insert(partitionIndexForInsert + 1, rightPartition);
-        if (isNewValueInRightPartition)
-        {
-            partitionIndexForInsert++;
-        }
 #if DEBUG
-        _debugMessageInsert = $"Split partitionForInsert={partitionForInsert} and inserted it at partitionIndexForInsert={partitionIndexForInsert} ";
-        _debugMessageInsert += isNewValueInRightPartition ? $"into rightPartition={rightPartition}" : $"into partitionForInsert={partitionForInsert}";
+        _debugMessageInsert = $"Split partitionForInsert={partitionForInsert} and inserted it at partitionIndexForInsert={partitionIndexForInsert}";
 #endif
     }
 
@@ -217,7 +220,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// </summary>
     /// <param name="partitionIndexChangedByInsert"></param>
     /// <param name="partitionIndexChangedByRemove">-1 means no remove happened</param>
-    private void AdjustPartitionsLowerBounds(int partitionIndexChangedByInsert, int partitionIndexChangedByRemove = -1)
+    private void AdjustPartitionsLowerBounds(int partitionIndexChangedByInsert, int partitionIndexChangedByRemove)
     {
         if (partitionIndexChangedByRemove < 0)
         {

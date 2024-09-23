@@ -69,14 +69,6 @@ public class SlidingWindowRankerTests
     }
 
     [Fact]
-    public void GetRank_ThrowsException_ForInvalidPartitionCount()
-    {
-        var initialValues = new List<int> { 1, 2, 3, 4, 5 };
-        Action act = () => new SlidingWindowRanker<int>(initialValues, 0);
-        act.Should().Throw<ArgumentOutOfRangeException>();
-    }
-
-    [Fact]
     public void GetRank_ReturnsZero_ForEmptyInitialValues_WithWindowSizeOf10()
     {
         var initialValues = new List<int>();
@@ -121,7 +113,7 @@ public class SlidingWindowRankerTests
         {
             ranker.DebugGuardPartitionLowerBoundValuesAreCorrect();
             var value = valuesToRank[index];
-            if (index >= 109)
+            if (index >= 110)
             {
             }
             var rank = ranker.GetRank(value);
@@ -212,7 +204,7 @@ public class SlidingWindowRankerTests
         var ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
         for (var index = WindowSize; index < valuesToRank.Count; index++)
         {
-            if (index == 54)
+            if (index == 55)
             {
             }
             var value = valuesToRank[index];
