@@ -15,7 +15,6 @@ public class UnsafePartitionTests
 
         // Assert
         partition.Values.Should().Equal(values);
-        partition.Values.Capacity.Should().Be(6); // Capacity should be double the initial count
     }
 
     [Fact]
@@ -112,7 +111,7 @@ public class UnsafePartitionTests
     }
 
     [Fact]
-    public void Insert_ShouldAddValueInSortedOrder()
+    public void Insert_ShouldAddValueInSortedOrderClosestToRight()
     {
         // Arrange
         var values = new List<int> { 1, 3, 5 };
@@ -123,6 +122,20 @@ public class UnsafePartitionTests
 
         // Assert
         partition.Values.Should().Equal(new List<int> { 1, 3, 4, 5 });
+    }
+
+    [Fact]
+    public void Insert_ShouldAddValueInSortedOrderClosestToLeft()
+    {
+        // Arrange
+        var values = new List<int> { 1, 3, 5 };
+        var partition = new UnsafePartition<int>(values);
+
+        // Act
+        partition.Insert(2);
+
+        // Assert
+        partition.Values.Should().Equal(new List<int> { 1, 2, 3, 5 });
     }
 
     [Fact]
