@@ -45,6 +45,12 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
     /// </summary>
     public bool IsFull => Values.Count == Values.Capacity;
 
+    public void Dispose()
+    {
+        // Nothing to do. Disposable because of UnsafePartition
+        GC.SuppressFinalize(this);
+    }
+
     public int CompareTo(Partition<T> other)
     {
         return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);

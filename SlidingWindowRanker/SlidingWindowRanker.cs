@@ -9,7 +9,7 @@ namespace SlidingWindowRanker;
 /// Partial class so we can do Unit Testing on private methods in th test project
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public partial class SlidingWindowRanker<T> where T : IComparable<T>
+public partial class SlidingWindowRanker<T> : IDisposable where T : IComparable<T>
 {
     private readonly List<Partition<T>> _partitions = [];
 
@@ -101,6 +101,15 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     public int CountPartitionSplits { get; private set; }
 
     public int CountPartitionRemoves { get; private set; }
+
+    public void Dispose()
+    {
+        foreach (var partition in _partitions)
+        {
+            partition.Dispose();
+        }
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// Returns the rank of the specified value, as a fraction of the total number of values in the window

@@ -1,6 +1,6 @@
 ﻿namespace SlidingWindowRanker;
 
-internal interface IPartition<T> where T : IComparable<T>
+internal interface IPartition<T> : IDisposable where T : IComparable<T>
 {
     /// <summary>
     ///     This is the lower bound for the entire window of the lowest value in the partition.
@@ -29,10 +29,12 @@ internal interface IPartition<T> where T : IComparable<T>
     /// </summary>
     bool IsFull { get; }
 
+    List<T> Values { get; }
+
     int CompareTo(Partition<T> other);
-    
+
     void Insert(T value);
-    
+
     void Remove(T value);
 
     /// <summary>
@@ -45,8 +47,6 @@ internal interface IPartition<T> where T : IComparable<T>
     Partition<T> SplitAndInsert(T valueToInsert);
 
     int GetLowerBoundWithinPartition(T value);
-    
+
     bool Contains(T value);
-    
-    List<T> Values { get; }
 }
