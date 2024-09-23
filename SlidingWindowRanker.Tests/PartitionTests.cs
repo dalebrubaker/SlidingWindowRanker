@@ -26,11 +26,11 @@ public class PartitionTests
         var partition = new Partition<int>(values);
         partition.Insert(4);
         partition.Insert(4);
-        partition.NeedsSplitting.Should().BeFalse();
+        partition.IsFull.Should().BeFalse();
         partition.Insert(4);
 
         // Assert
-        partition.NeedsSplitting.Should().BeTrue();
+        partition.IsFull.Should().BeTrue();
     }
 
     [Fact]
@@ -41,9 +41,9 @@ public class PartitionTests
         var partition = new Partition<int>(values);
         partition.Insert(4);
         partition.Insert(4);
-        partition.NeedsSplitting.Should().BeFalse();
+        partition.IsFull.Should().BeFalse();
         partition.Insert(4);
-        partition.NeedsSplitting.Should().BeTrue();
+        partition.IsFull.Should().BeTrue();
         var partitionLowerBound = partition.LowerBound;
 
         // Act
@@ -67,9 +67,9 @@ public class PartitionTests
         var partition = new Partition<int>(values);
         partition.Insert(4);
         partition.Insert(4);
-        partition.NeedsSplitting.Should().BeFalse();
+        partition.IsFull.Should().BeFalse();
         partition.Insert(4);
-        partition.NeedsSplitting.Should().BeTrue();
+        partition.IsFull.Should().BeTrue();
         var partitionLowerBound = partition.LowerBound;
 
         // Act
@@ -93,9 +93,9 @@ public class PartitionTests
         var partition = new Partition<int>(values);
         partition.Insert(4);
         partition.Insert(4);
-        partition.NeedsSplitting.Should().BeFalse();
+        partition.IsFull.Should().BeFalse();
         partition.Insert(4);
-        partition.NeedsSplitting.Should().BeTrue();
+        partition.IsFull.Should().BeTrue();
         var partitionLowerBound = partition.LowerBound;
 
         // Act

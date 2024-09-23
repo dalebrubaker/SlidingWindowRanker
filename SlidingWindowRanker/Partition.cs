@@ -1,6 +1,6 @@
 ﻿namespace SlidingWindowRanker;
 
-internal partial class Partition<T> where T : IComparable<T>
+internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
 {
     private readonly int _partitionSize;
 
@@ -41,9 +41,9 @@ internal partial class Partition<T> where T : IComparable<T>
     public int Count => Values.Count;
 
     /// <summary>
-    /// The partition needs splitting if it has reached its capacity and the next Insert would cause it to grow.
+    /// The partition needs to be split if it has reached its capacity and the next Insert would cause it to grow.
     /// </summary>
-    public bool NeedsSplitting => Values.Count == Values.Capacity;
+    public bool IsFull => Values.Count == Values.Capacity;
 
     public int CompareTo(Partition<T> other)
     {

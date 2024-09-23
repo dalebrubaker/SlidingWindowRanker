@@ -83,7 +83,7 @@ public class SlidingWindowRankerLowLevelTests
         // Act
         ranker.Test_DoInsert(3);
         ranker.Test_DoInsert(5);
-        partition0.NeedsSplitting.Should().BeTrue();
+        partition0.IsFull.Should().BeTrue();
         ranker.Test_DoInsert(4);
 
         // Assert
@@ -103,7 +103,7 @@ public class SlidingWindowRankerLowLevelTests
         // Act
         ranker.Test_DoInsert(3);
         ranker.Test_DoInsert(4);
-        partition0.NeedsSplitting.Should().BeTrue();
+        partition0.IsFull.Should().BeTrue();
         ranker.Test_DoInsert(5);
 
         // Assert

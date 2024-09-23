@@ -186,7 +186,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
     private void DoInsert(T valueToInsert, Partition<T> partitionForInsert, ref int partitionIndexForInsert)
     {
-        if (partitionForInsert.NeedsSplitting)
+        if (partitionForInsert.IsFull)
         {
             var isSplittingAtEnd = valueToInsert.CompareTo(partitionForInsert.HighestValue) >= 0;
             SplitPartition(partitionForInsert, partitionIndexForInsert, valueToInsert);
@@ -272,7 +272,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="partitionForInsert"></param>
     private void DoInsert(T valueToInsert, Partition<T> partitionForInsert)
     {
-        Debug.Assert(!partitionForInsert.NeedsSplitting, "Must have been split before we get here");
+        Debug.Assert(!partitionForInsert.IsFull, "Must have been split before we get here");
         partitionForInsert.Insert(valueToInsert);
 #if DEBUG
         _debugMessageInsert = $"Inserted value into partitionForInsert={partitionForInsert}";
