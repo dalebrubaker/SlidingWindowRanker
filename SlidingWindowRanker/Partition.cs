@@ -13,7 +13,7 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
         }
         if (_partitionSize == 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(_partitionSize), "The partition size must be greater than 0.");
+            throw new ArgumentOutOfRangeException(nameof(partitionSize), "The partition size must be greater than 0.");
         }
         Values = values;
         Values.Capacity = Math.Max(Values.Capacity, _partitionSize * 2); // Leave room to grow
