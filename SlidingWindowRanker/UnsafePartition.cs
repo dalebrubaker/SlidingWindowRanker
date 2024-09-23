@@ -52,7 +52,19 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
 
     public void Dispose()
     {
-        Dispose(true);
+        if (!_disposed)
+        {
+            if (_bufferPtr != null)
+            {
+                Marshal.FreeHGlobal((IntPtr)_bufferPtr);
+                _bufferPtr = null; // Avoid dangling pointer
+            }
+            if (_bufferHandle.IsAllocated)
+            {
+                _bufferHandle.Free();
+            }
+            _disposed = true;
+        }
         GC.SuppressFinalize(this);
     }
 
@@ -162,25 +174,8 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
         }
     }
 
-    private void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (_bufferPtr != null)
-            {
-                Marshal.FreeHGlobal((IntPtr)_bufferPtr);
-                _bufferPtr = null; // Avoid dangling pointer
-            }
-            if (_bufferHandle.IsAllocated)
-            {
-                _bufferHandle.Free();
-            }
-            _disposed = true;
-        }
-    }
-
     ~UnsafePartition()
     {
-        Dispose(false);
+        Dispose();
     }
 }
