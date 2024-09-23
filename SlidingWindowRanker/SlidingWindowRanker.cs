@@ -107,7 +107,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// that are LESS THAN the given value.
     /// This is Cumulative Distribution Function (CDF) value for the specified value
     /// except that CDF is normally defined as LESS THAN OR EQUAL rather than LESS THAN.
-    /// So the values returned will be in the range [0, 1] NOT inclusive of 1) rather than [0, 1] inclusive.
+    /// So the values returned will be in the range ([0, 1] NOT inclusive of 1) rather than [0, 1] inclusive.
     ///
     /// The given value given is added to the right side of the window and the oldest value is removed from the left side
     /// of the window. The result is what would be calculated based on the values in the window AFTER the add/remove.
@@ -343,6 +343,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
     public override string ToString()
     {
-        return $"_windowSize={_windowSize:N0} #values={_valueQueue.Count:N0} #partitions={_partitions.Count} #splits={CountPartitionSplits:N0} #removes={CountPartitionRemoves:N0}";
+        return
+            $"_windowSize={_windowSize:N0} #values={_valueQueue.Count:N0} #partitions={_partitions.Count} #splits={CountPartitionSplits:N0} #removes={CountPartitionRemoves:N0}";
     }
 }
