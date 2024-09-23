@@ -41,7 +41,7 @@ public class CollectionExtensionTests
     {
         var list = new List<int> { 1, 3, 5, 7, 9 };
         var value = 5;
-        var result = list.LowerBound(0, list.Count, value);
+        var result = list.LowerBound(value);
         result.Should().Be(2);
     }
 
@@ -50,7 +50,7 @@ public class CollectionExtensionTests
     {
         var list = new List<int> { 1, 3, 5, 7, 9 };
         var value = 4;
-        var result = list.LowerBound(0, list.Count, value);
+        var result = list.LowerBound(value);
         result.Should().Be(2);
     }
 }

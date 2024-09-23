@@ -54,14 +54,29 @@ public static class CollectionExtensions
     /// </returns>
     public static int LowerBound<T>(this List<T> list, T value) where T : IComparable<T>
     {
-        return list.LowerBound(0, list.Count, value);
+        ArgumentNullException.ThrowIfNull(list);
+        var low = 0;
+        var high = list.Count;
+        while (low < high)
+        {
+            var mid = low + ((high - low) >> 1);
+            if (list[mid].CompareTo(value) < 0)
+            {
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid;
+            }
+        }
+        return low;
     }
 
     /// <summary>
     ///     Get the lower bound for value in the range from first to last.
     ///     See https://en.cppreference.com/w/cpp/algorithm/lower_bound
     /// </summary>
-    /// <param name="array"></param>
+    /// <param name="list"></param>
     /// <param name="first">This first index to search, must be 0 or higher</param>
     /// <param name="last">The index one higher than the highest index in the range (e.g. Count)</param>
     /// <param name="value"></param>
@@ -71,13 +86,13 @@ public static class CollectionExtensions
     ///     (Count) if no such element is
     ///     found
     /// </returns>
-    public static int LowerBoundOriginal<T>(this List<T> array, int first, int last, T value) where T : IComparable<T>
+    public static int LowerBoundOriginal<T>(this List<T> list, int first, int last, T value) where T : IComparable<T>
     {
         if (first < 0)
         {
             throw new ArgumentException($"first={first:N0} must not be negative", nameof(first));
         }
-        var count = array.Count;
+        var count = list.Count;
         if (last > count)
         {
             throw new ArgumentException($"last={last:N0} must not be higher than {count:N0}", nameof(last));
@@ -87,7 +102,7 @@ public static class CollectionExtensions
         {
             var step = count / 2;
             var i = first + step;
-            var arrayValue = array[i];
+            var arrayValue = list[i];
             var compareTo = arrayValue.CompareTo(value);
             if (compareTo < 0)
             {
@@ -99,7 +114,6 @@ public static class CollectionExtensions
                 count = step;
             }
         }
-
         return first;
     }
 
@@ -200,17 +214,11 @@ public static class CollectionExtensions
     /// </exception>
     public static int LowerBound<T>(this List<T> list, int first, int last, T value) where T : IComparable<T>
     {
-        if (list == null)
+        ArgumentNullException.ThrowIfNull(list);
+        if (first < 0 || first > list.Count || last < first || last > list.Count)
         {
-            throw new ArgumentNullException(nameof(list));
-        }
-        if (first < 0 || first > list.Count)
-        {
-            throw new ArgumentOutOfRangeException(nameof(first), "First index is out of range.");
-        }
-        if (last < first || last > list.Count)
-        {
-            throw new ArgumentOutOfRangeException(nameof(last), "Last index is out of range.");
+            // ReSharper disable once NotResolvedInText
+            throw new ArgumentOutOfRangeException("Index out of range.");
         }
         var low = first;
         var high = last;
