@@ -23,9 +23,10 @@ and more.
 
 Here's a simple example of how to use Sliding Window Ranker:
 
+```csharp
 var ranker = new SlidingWindowRanker<double>(initialValues);
 var rank = ranker.GetRank(value);
-
+```
 ## Contributing
 
 We welcome contributions to Sliding Window Ranker! If you have an idea for a new feature or have found a bug, please
