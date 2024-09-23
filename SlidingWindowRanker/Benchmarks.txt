@@ -400,13 +400,6 @@ Benchmarks with issues:
 
 ```
 
-BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
-Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
-.NET SDK 8.0.400
-  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
-  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
-
-
 ```
 | Method     | NumberOfTestValues | NumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
 |----------- |------------------- |------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
@@ -414,3 +407,11 @@ Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
 | RankValues | 1000000            | 128                | 330.8 ms | 1.78 ms | 1.58 ms |    2 |                    - |                - |     400 B |
 | RankValues | 1000000            | 512                | 339.2 ms | 0.81 ms | 0.76 ms |    2 |                    - |                - |     400 B |
 | RankValues | 1000000            | 64                 | 975.4 ms | 1.88 ms | 1.76 ms |    3 |                    - |                - |     400 B |
+
+
+```
+| Method     | NumberOfTestValues | MultipleOfNumberOfPartitions | Mean     | Error   | StdDev  | Rank | Completed Work Items | Lock Contentions | Allocated |
+|----------- |------------------- |----------------------------- |---------:|--------:|--------:|-----:|---------------------:|-----------------:|----------:|
+| RankValues | 1000000            | 1                            | 325.2 ms | 0.58 ms | 0.51 ms |    1 |                    - |                - |     200 B |
+| RankValues | 1000000            | 1.5                          | 326.8 ms | 1.41 ms | 1.31 ms |    1 |                    - |                - |     200 B |
+| RankValues | 1000000            | 0.5                          | 329.5 ms | 4.81 ms | 4.50 ms |    1 |                    - |                - |     200 B |
