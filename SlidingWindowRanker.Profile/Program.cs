@@ -1,22 +1,24 @@
 ﻿using System.Diagnostics;
 using SlidingWindowRanker;
 
-const int NumberOfTestValues = 400000;
+
+const int NumberOfTestValues = 200;
 const int WindowSize = NumberOfTestValues / 10;
 //const int NumberOfPartitions = -1; // use Sqrt(WindowSize) as default
 var valuesToRank = new List<double>(NumberOfTestValues);
+var random = new Random();
 for (var i = 0; i < NumberOfTestValues; i++)
 {
-    var random = new Random();
     var value = random.NextDouble() * 100;
     value = Math.Round(value, 1); // for easier debugging
     valuesToRank.Add(value);
 }
+var valuesToRankStr = string.Join(',', valuesToRank);
 var indexToSplit = NumberOfTestValues - WindowSize;
-var initialValues = valuesToRank.GetRange(indexToSplit, WindowSize).ToList();
-valuesToRank.RemoveRange(indexToSplit, valuesToRank.Count - indexToSplit);
-using var ranker = new SlidingWindowRanker<double>(initialValues);
-//using var ranker = new SlidingWindowRankerUnsafe<double>(initialValues);
+var initialValues = valuesToRank.GetRange(indexToSplit, WindowSize);
+valuesToRank.RemoveRange(indexToSplit, WindowSize);
+//using var ranker = new SlidingWindowRanker<double>(initialValues);
+using var ranker = new SlidingWindowRankerUnsafe<double>(initialValues);
 //Console.WriteLine("Ready to start ranking values...");
 //Console.WriteLine("Press any key to start...");
 //Console.ReadKey();
@@ -26,6 +28,9 @@ var sum = 0.0;
 for (var i = indexToSplit - 1; i >= 0; i--)
 {
     var value = valuesToRank[i];
+    if (i == 3233)
+    {
+    }
     var rank = ranker.GetRank(value);
     counter++;
     sum += rank;

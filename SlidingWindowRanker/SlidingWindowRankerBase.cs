@@ -56,10 +56,6 @@ public partial class SlidingWindowRankerBase<T> : IDisposable where T : ICompara
     /// <returns>The fraction of values in the window that are less than the specified value.</returns>
     public double GetRank(T valueToInsert)
     {
-        // if (valueToInsert.ToString() == "4.7")`
-        // {
-        //     Debugger.Break();
-        // }
         var valueToRemove = IsQueueFull ? _valueQueue.Dequeue() : default;
         _valueQueue.Enqueue(valueToInsert);
 #if DEBUG

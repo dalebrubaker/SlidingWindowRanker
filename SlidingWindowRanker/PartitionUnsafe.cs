@@ -220,6 +220,7 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
         var isSplitIntoRightPartition = indexIntoBuffer >= _right;
         var countValuesToGet = _right - indexIntoBuffer + 1;
         var rightValues = GetRange(indexIntoBuffer, countValuesToGet);
+        var tmpValues = Values;
         _right -= countValuesToGet; // Effectively is RemoveRange
         if (_left == _capacityLeft)
         {
@@ -228,7 +229,9 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
             var count = Count;
             var newLeft = middle - count / 2;
             var countToShift = newLeft - _left;
-            for (int i = _left; i <  _left + countToShift; i++)
+
+            // Shift values from _left to newLeft
+            for (int i = _right; i >= _left; i--)
             {
                 *(_bufferPtr + i + countToShift) = *(_bufferPtr + i);
             }
