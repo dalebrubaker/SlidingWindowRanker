@@ -119,9 +119,6 @@ public partial class SlidingWindowRankerBase<T> : IDisposable where T : ICompara
     /// <returns>the beginIncrementsIndex - the index above which index must be incremented</returns>
     private int DoInsert(T valueToInsert, ref int partitionIndexForInsert)
     {
-        if (valueToInsert.ToString() == "94.1" && partitionIndexForInsert == 3)
-        {
-        }
         var partitionForInsert = _partitions[partitionIndexForInsert];
         if (partitionForInsert.IsFull)
         {

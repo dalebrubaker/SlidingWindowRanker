@@ -15,8 +15,8 @@ for (var i = 0; i < NumberOfTestValues; i++)
 var indexToSplit = NumberOfTestValues - WindowSize;
 var initialValues = valuesToRank.GetRange(indexToSplit, WindowSize).ToList();
 valuesToRank.RemoveRange(indexToSplit, valuesToRank.Count - indexToSplit);
-var ranker = new SlidingWindowRanker<double>(initialValues);
-//var ranker = new SlidingWindowRankerUnsafe<double>(initialValues);
+using var ranker = new SlidingWindowRanker<double>(initialValues);
+//using var ranker = new SlidingWindowRankerUnsafe<double>(initialValues);
 //Console.WriteLine("Ready to start ranking values...");
 //Console.WriteLine("Press any key to start...");
 //Console.ReadKey();

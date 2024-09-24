@@ -100,7 +100,7 @@ public class PartitionTests
 
         // Act
         const int ValueToInsert = 2;
-        var (rightPartition, isSplitIntoRightPartition)= partition.SplitAndInsert(ValueToInsert);
+        var (rightPartition, isSplitIntoRightPartition) = partition.SplitAndInsert(ValueToInsert);
         partition.LowerBound.Should().Be(partitionLowerBound);
         rightPartition.LowerBound.Should().Be(partitionLowerBound + partition.Count - 1, "Not adjusted yet");
         partition.Contains(ValueToInsert).Should().BeTrue("the value should be in the old (left) partition");

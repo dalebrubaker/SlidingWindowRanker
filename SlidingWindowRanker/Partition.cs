@@ -1,4 +1,7 @@
-﻿namespace SlidingWindowRanker;
+﻿using System;
+using System.ComponentModel.Design.Serialization;
+
+namespace SlidingWindowRanker;
 
 internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
 {
@@ -58,7 +61,11 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
 
     public void Insert(T value)
     {
-        var index = Values.LowerBound(value);
+        var index = Values.BinarySearch(value);
+        if (index < 0)
+        {
+            index = ~index;
+        }
         if (index > Values.Count)
         {
             // avoid a crash if our LowerBound came in with count
@@ -75,7 +82,11 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
 
     public void Remove(T value)
     {
-        var index = Values.LowerBound(value);
+        var index = Values.BinarySearch(value);
+        if (index < 0)
+        {
+            index = ~index;
+        }
         var existingValue = Values[index];
         if (existingValue.CompareTo(value) != 0)
         {
@@ -93,7 +104,11 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
     /// <returns>the Partition to insert AFTER this partition.</returns>
     public (IPartition<T> partition, bool isSplitIntoRightPartition) SplitAndInsert(T valueToInsert)
     {
-        var splitIndex = Values.LowerBound(valueToInsert);
+        var splitIndex = Values.BinarySearch(valueToInsert);
+        if (splitIndex < 0)
+        {
+            splitIndex = ~splitIndex;
+        }
         var isSplitIntoRightPartition = splitIndex == Values.Count;
         var rightValues = Values.GetRange(splitIndex, Values.Count - splitIndex);
         Values.RemoveRange(splitIndex, Values.Count - splitIndex);
