@@ -31,7 +31,7 @@ internal interface IPartition<T> : IDisposable where T : IComparable<T>
 
     List<T> Values { get; }
 
-    int CompareTo(Partition<T> other);
+    int CompareTo(IPartition<T> other);
 
     void Insert(T value);
 
@@ -44,9 +44,10 @@ internal interface IPartition<T> : IDisposable where T : IComparable<T>
     /// </summary>
     /// <param name="valueToInsert"></param>
     /// <returns>the Partition to insert AFTER this partition.</returns>
-    Partition<T> SplitAndInsert(T valueToInsert);
+    IPartition<T> SplitAndInsert(T valueToInsert);
 
     int GetLowerBoundWithinPartition(T value);
 
     bool Contains(T value);
+
 }

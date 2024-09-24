@@ -51,7 +51,7 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
         GC.SuppressFinalize(this);
     }
 
-    public int CompareTo(Partition<T> other)
+    public int CompareTo(IPartition<T> other)
     {
         return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
     }
@@ -91,7 +91,7 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
     /// </summary>
     /// <param name="valueToInsert"></param>
     /// <returns>the Partition to insert AFTER this partition.</returns>
-    public Partition<T> SplitAndInsert(T valueToInsert)
+    public IPartition<T> SplitAndInsert(T valueToInsert)
     {
         var splitIndex = Values.LowerBound(valueToInsert);
         var isSplittingAtEnd = splitIndex == Values.Count;

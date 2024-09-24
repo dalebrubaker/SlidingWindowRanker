@@ -115,7 +115,7 @@ public class SlidingWindowRankerTests
         {
             ranker.DebugGuardPartitionLowerBoundValuesAreCorrect();
             var value = valuesToRank[index];
-            if (index >= 110)
+            if (index is 880 or 870)
             {
             }
             var rank = ranker.GetRank(value);

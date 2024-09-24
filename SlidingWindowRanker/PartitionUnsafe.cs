@@ -2,7 +2,7 @@
 
 namespace SlidingWindowRanker;
 
-internal unsafe class PartitionUnsafe<T> : IPartition<T> where T : unmanaged, IComparable<T>
+internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unmanaged, IComparable<T>
 {
     private readonly int _capacity;
     private readonly int _capacityLeft;
@@ -102,7 +102,7 @@ internal unsafe class PartitionUnsafe<T> : IPartition<T> where T : unmanaged, IC
 
     public bool IsFull => _left == _capacityLeft || _right == _capacityRight;
 
-    public int CompareTo(Partition<T> other)
+    public int CompareTo(IPartition<T> other)
     {
         return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
     }
@@ -179,7 +179,7 @@ internal unsafe class PartitionUnsafe<T> : IPartition<T> where T : unmanaged, IC
         }
     }
 
-    public Partition<T> SplitAndInsert(T valueToInsert)
+    public IPartition<T> SplitAndInsert(T valueToInsert)
     {
         var indexIntoBuffer = UnsafeArrayHelper.BinarySearch(_bufferPtr, _left, Count, valueToInsert);
         if (indexIntoBuffer < 0)

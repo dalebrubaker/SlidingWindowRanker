@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("SlidingWindowRanker.Tests")]
+[assembly: InternalsVisibleTo("SlidingWindowRankerUnsafe.Tests")]
 
 namespace SlidingWindowRanker;
 
@@ -9,7 +9,7 @@ namespace SlidingWindowRanker;
 /// Partial class so we can do Unit Testing on private methods in th test project
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public partial class SlidingWindowRanker<T> : IDisposable where T : IComparable<T>
+public partial class SlidingWindowRankerUnsafe<T> : IDisposable where T : unmanaged, IComparable<T>
 {
     private readonly List<IPartition<T>> _partitions = [];
 
@@ -26,7 +26,7 @@ public partial class SlidingWindowRanker<T> : IDisposable where T : IComparable<
     private readonly int _windowSize;
 
     /// <summary>
-    /// Initializes a new instance of the SlidingWindowRanker class.
+    /// Initializes a new instance of the SlidingWindowRankerUnsafe class.
     /// </summary>
     /// <param name="initialValues">The initial values to populate the sliding window.</param>
     /// <param name="partitionCount">The number of partitions to divide the values into. If less than or equal to zero,
@@ -34,7 +34,7 @@ public partial class SlidingWindowRanker<T> : IDisposable where T : IComparable<
     /// <param name="windowSize">Default -1 means to use initialValues.Count. Must be no smaller than initialValues</param>
     /// <param name="isSorted">true means the initialValues have already been sorted, thus preventing an additional sort here</param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public SlidingWindowRanker(List<T> initialValues, int partitionCount = -1, int windowSize = -1, bool isSorted = false)
+    public SlidingWindowRankerUnsafe(List<T> initialValues, int partitionCount = -1, int windowSize = -1, bool isSorted = false)
     {
         if (windowSize < 0)
         {
@@ -88,7 +88,7 @@ public partial class SlidingWindowRanker<T> : IDisposable where T : IComparable<
             // Last partition gets the remaining values
             var getRangeCount = i == partitionCount - 1 ? values.Count - startIndex : partitionSize;
             var partitionValues = values.GetRange(startIndex, getRangeCount);
-            var partition = new Partition<T>(partitionValues, partitionSize)
+            var partition = new PartitionUnsafe<T>(partitionValues, partitionSize)
             {
                 LowerBound = startIndex
             };
@@ -170,9 +170,8 @@ public partial class SlidingWindowRanker<T> : IDisposable where T : IComparable<
                         {
                             partition.LowerBound = 0;
                         }
-                        else if (partitionIndexForInsert != partitionIndexForRemove - 1)
+                        else
                         {
-                            // if the previous partition is just below this one, don't fix up the LowerBound, or it messes up increments
                             var previousPartition = _partitions[partitionIndexForRemove - 1];
                             partition.LowerBound = previousPartition.LowerBound + previousPartition.Count;
                         }

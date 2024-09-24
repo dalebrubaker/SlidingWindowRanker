@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Xunit.Abstractions;
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
 
 namespace SlidingWindowRanker.Tests;
 
@@ -20,7 +21,7 @@ public class SlidingWindowRankerLowLevelTests
         var initialValues = new List<int> { 1, 2, 3, 4, 5 };
         var ranker = new SlidingWindowRanker<int>(initialValues, 5);
         ranker.TestPartitions.Count.Should().Be(5);
-        var partition1 = ranker.TestPartitions[1];
+        var partition1 = ranker.TestPartitions[1] as Partition<int>;
         partition1.Test_PartitionSize.Should().Be(1);
         partition1.Test_LowerBound.Should().Be(1);
 
@@ -40,7 +41,7 @@ public class SlidingWindowRankerLowLevelTests
         var initialValues = new List<int> { 1, 2, 3, 4, 5 };
         var ranker = new SlidingWindowRanker<int>(initialValues, 3);
         ranker.TestPartitions.Count.Should().Be(3);
-        var partition1 = ranker.TestPartitions[1];
+        var partition1 = ranker.TestPartitions[1] as Partition<int>;
         partition1.Test_PartitionSize.Should().Be(2);
         partition1.Test_LowerBound.Should().Be(2);
 
@@ -118,7 +119,7 @@ public class SlidingWindowRankerLowLevelTests
         var initialValues = new List<int> { 1, 2, 4 };
         var ranker = new SlidingWindowRanker<int>(initialValues, 3);
         ranker.TestPartitions.Count.Should().Be(3);
-        var partition0 = ranker.TestPartitions[0];
+        var partition0 = ranker.TestPartitions[0] as Partition<int>;
         partition0.Test_PartitionSize.Should().Be(1);
         partition0.Test_PartitionCapacity.Should().Be(2);
 
