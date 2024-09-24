@@ -46,9 +46,32 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
         for (var i = 0; i < count; i++)
         {
             var bufferIndex = _left + i;
-            _bufferPtr[bufferIndex] = valuesArrayPtr[i];
+            *(_bufferPtr + bufferIndex) = *(valuesArrayPtr + i);
         }
         valuesHandle.Free();
+    }
+
+    public List<string> BufferValues
+    {
+        get
+        {
+            if (Count == 0)
+            {
+                return [];
+            }
+            var result = new List<string>(_capacity);
+            for (var i = _capacityLeft; i <= _capacityRight; i++)
+            {
+                if (i < _left || i > _right)
+                {
+                    result.Add("N/A");
+                    continue;
+                }
+                var value = *(_bufferPtr + i);
+                result.Add(value.ToString());
+            }
+            return result;
+        }
     }
 
     public void Dispose()
@@ -71,9 +94,9 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
 
     public int LowerBound { get; set; }
 
-    public T LowestValue => _bufferPtr[_left];
+    public T LowestValue => *(_bufferPtr + _left);
 
-    public T HighestValue => _bufferPtr[_right];
+    public T HighestValue => *(_bufferPtr + _right);
 
     public int Count => _right - _left + 1;
 
@@ -211,38 +234,11 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
             var result = new List<T>(Count);
             for (var i = _left; i <= _right; i++)
             {
-
                 result.Add(*(_bufferPtr + i));
             }
             return result;
         }
     }
-
-    public List<string> BufferValues
-    {
-        get
-        {
-            if (Count == 0)
-            {
-                return [];
-            }
-            var result = new List<string>(_capacity);
-            for (var i = _capacityLeft; i <= _capacityRight; i++)
-            {
-                if (i < _left || i > _right)
-                {
-                    result.Add("N/A");
-                    continue;
-                }
-                var value = *(_bufferPtr + i);
-                result.Add(value.ToString());
-            }
-            return result;
-        }
-    }
-
-
-
 
     private List<T> GetRange(int indexIntoBuffer, int count)
     {
