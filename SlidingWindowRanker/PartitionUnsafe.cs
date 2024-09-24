@@ -220,7 +220,6 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
         var isSplitIntoRightPartition = indexIntoBuffer >= _right;
         var countValuesToGet = _right - indexIntoBuffer + 1;
         var rightValues = GetRange(indexIntoBuffer, countValuesToGet);
-        var tmpValues = Values;
         _right -= countValuesToGet; // Effectively is RemoveRange
         if (_left == _capacityLeft)
         {

@@ -2,7 +2,7 @@
 using SlidingWindowRanker;
 
 
-const int NumberOfTestValues = 200;
+const int NumberOfTestValues = 1000000;
 const int WindowSize = NumberOfTestValues / 10;
 //const int NumberOfPartitions = -1; // use Sqrt(WindowSize) as default
 var valuesToRank = new List<double>(NumberOfTestValues);
@@ -19,9 +19,9 @@ var initialValues = valuesToRank.GetRange(indexToSplit, WindowSize);
 valuesToRank.RemoveRange(indexToSplit, WindowSize);
 //using var ranker = new SlidingWindowRanker<double>(initialValues);
 using var ranker = new SlidingWindowRankerUnsafe<double>(initialValues);
-//Console.WriteLine("Ready to start ranking values...");
-//Console.WriteLine("Press any key to start...");
-//Console.ReadKey();
+Console.WriteLine("Ready to start ranking values...");
+Console.WriteLine("Press any key to start...");
+Console.ReadKey();
 var stopwatch = Stopwatch.StartNew();
 var counter = 0;
 var sum = 0.0;

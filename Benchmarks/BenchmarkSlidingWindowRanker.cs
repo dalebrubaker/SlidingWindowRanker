@@ -15,12 +15,13 @@ public class BenchmarkSlidingWindowRanker
     private SlidingWindowRankerUnsafe<double> _rankerUnsafe;
     private List<double> _valuesToRank;
 
-    [Params(4000, 40000, 400000, 4000000)]
+    [Params(1000, 10000, 100000, 1000000)]
     public int NumberOfTestValues { get; set; }
 
     private int WindowSize => NumberOfTestValues / 10;
 
-    private int NumberOfPartitions => (int)Math.Sqrt(WindowSize);
+    [Params(1, 16,  -1)]
+    public int NumberOfPartitions { get; set; }
 
     //[Params(0.5, 0.75, 1.0, 1.25)]
     //public double PartitionsMultipleOfDefault { get; set; }
@@ -40,8 +41,8 @@ public class BenchmarkSlidingWindowRanker
         _valuesToRank = [..valuesToRank];
         var initialValues = _valuesToRank.Take(WindowSize).ToList();
         //var numberOfPartitions = (int)(NumberOfPartitions * MultipleOfNumberOfPartitions);
-        _rankerSafe = new SlidingWindowRanker<double>(initialValues); //, numberOfPartitions);
-        _rankerUnsafe = new SlidingWindowRankerUnsafe<double>(initialValues); //, numberOfPartitions);
+        _rankerSafe = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
+        _rankerUnsafe = new SlidingWindowRankerUnsafe<double>(initialValues, NumberOfPartitions);
     }
 
     [GlobalCleanup]

@@ -66,11 +66,6 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
         {
             index = ~index;
         }
-        if (index > Values.Count)
-        {
-            // avoid a crash if our LowerBound came in with count
-            index = Values.Count;
-        }
         Values.Insert(index, value);
 #if DEBUG
         if (!Values.IsSortedAscending())
