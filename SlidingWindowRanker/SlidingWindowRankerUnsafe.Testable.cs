@@ -59,7 +59,7 @@ public partial class SlidingWindowRankerUnsafe<T> where T : unmanaged, IComparab
     /// Debug code to ensure the LowerBound of every partition is correct.
     /// </summary>
     // ReSharper disable once MemberCanBePrivate.Global -- Used in tests
-    private void DebugGuardPartitionLowerBoundValuesAreCorrect()
+    internal void DebugGuardPartitionLowerBoundValuesAreCorrect()
     {
 #if DEBUG
         if (_partitions[0].LowerBound != 0)
