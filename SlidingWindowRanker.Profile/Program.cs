@@ -34,4 +34,4 @@ var countSplits = ranker.CountPartitionSplits;
 var countRemovePartitions = ranker.CountPartitionRemoves;
 Console.WriteLine($"Done in {elapsedMilliseconds} ms. #ranks={counter:N0} sum={sum} "
                   + $"countRemovePartitions={countRemovePartitions:N0} countSplits={countSplits:N0} Press any key to exit.");
-Console.ReadKey();
+//Console.ReadKey();
