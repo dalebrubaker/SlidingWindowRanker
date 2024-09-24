@@ -137,65 +137,63 @@ public partial class SlidingWindowRanker<T> : IDisposable where T : IComparable<
         _debugMessageRemove = null;
         _debugMessageInsert = null;
 #endif
-
         var partitionIndexForInsert = FindPartitionContaining(valueToInsert);
-        var partitionForInsert = _partitions[partitionIndexForInsert];
-        DoInsert(valueToInsert, partitionForInsert, ref partitionIndexForInsert);
+        var beginIncrementsIndex = DoInsert(valueToInsert, ref partitionIndexForInsert);
         var partitionIndexForRemove = IsQueueFull ? FindPartitionContaining(valueToRemove) : int.MaxValue;
-        DoRemove(ref partitionIndexForRemove, ref partitionIndexForInsert, valueToRemove);
-        AdjustPartitionsLowerBounds(partitionIndexForInsert, partitionIndexForRemove);
+        var beginDecrementsIndex = DoRemove(partitionIndexForRemove, ref partitionIndexForInsert, valueToRemove, ref beginIncrementsIndex);
+        AdjustPartitionsLowerBounds(beginIncrementsIndex, beginDecrementsIndex);
+        var partitionForInsert = _partitions[partitionIndexForInsert];
+
+        // Now get the rank
         var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToInsert);
         var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
         var rank = (double)lowerBound / _valueQueue.Count; // Use _valueQueue.Count instead of _windowSize because the window may not be full yet
         return rank;
     }
 
-    private void DoRemove(ref int partitionIndexForRemove, ref int partitionIndexForInsert, T valueToRemove)
+    /// <summary>
+    /// Removes the specified value from the window, either by removing within a partition or by removing the partition.
+    /// </summary>
+    /// <param name="partitionIndexForRemove"></param>
+    /// <param name="partitionIndexForInsert"></param>
+    /// <param name="valueToRemove"></param>
+    /// <param name="beginIncrementsIndex"></param>
+    /// <returns>the beginDecrementIndex - the index above which index must be decremented</returns>
+    private int DoRemove(int partitionIndexForRemove, ref int partitionIndexForInsert, T valueToRemove, ref int beginIncrementsIndex)
     {
-        if (IsQueueFull)
+        if (!IsQueueFull)
         {
-            var partitionForRemove = _partitions[partitionIndexForRemove];
-            if (partitionForRemove.Count == 1)
+            return _partitions.Count; // No removal
+        }
+        var partitionForRemove = _partitions[partitionIndexForRemove];
+        if (partitionForRemove.Count == 1 && partitionIndexForRemove != partitionIndexForInsert)
+        {
+            // The partition holding the value to remove will be empty after the remove
+            // But don't remove the partition because we are about to insert a value into it
+            RemovePartition(partitionIndexForRemove, partitionForRemove);
+            if (beginIncrementsIndex > partitionIndexForRemove)
             {
-                // The partition holding the value to remove will be empty after the remove
-                if (partitionIndexForRemove != partitionIndexForInsert)
-                {
-                    // But don't remove the partition because we are about to insert a value into it
-                    RemovePartition(partitionIndexForRemove, partitionForRemove);
-                    if (partitionIndexForRemove < _partitions.Count)
-                    {
-                        // Fix the LowerBound for this partition
-                        var partition = _partitions[partitionIndexForRemove];
-                        if (partitionIndexForRemove == 0)
-                        {
-                            partition.LowerBound = 0;
-                        }
-                        else if (partitionIndexForInsert != partitionIndexForRemove - 1)
-                        {
-                            // if the previous partition is just below this one, don't fix up the LowerBound, or it messes up increments
-                            var previousPartition = _partitions[partitionIndexForRemove - 1];
-                            partition.LowerBound = previousPartition.LowerBound + previousPartition.Count;
-                        }
-                    }
-                    if (partitionIndexForRemove < partitionIndexForInsert)
-                    {
-                        partitionIndexForInsert--;
-                    }
-                    else
-                    {
-                        partitionIndexForRemove--;
-                    }
-                }
+                beginIncrementsIndex--;
+                partitionIndexForInsert--;
             }
-            else
-            {
-                DoRemove(valueToRemove, partitionForRemove);
-            }
+            return partitionIndexForRemove;
+        }
+        else
+        {
+            DoRemove(valueToRemove, partitionForRemove);
+            return partitionIndexForRemove + 1;
         }
     }
 
-    private void DoInsert(T valueToInsert, IPartition<T> partitionForInsert, ref int partitionIndexForInsert)
+    /// <summary>
+    /// Insert the value, splitting the partition if necessary.
+    /// </summary>
+    /// <param name="valueToInsert"></param>
+    /// <param name="partitionIndexForInsert">This can change to the split partition</param>
+    /// <returns>the beginIncrementsIndex - the index above which index must be incremented</returns>
+    private int DoInsert(T valueToInsert, ref int partitionIndexForInsert)
     {
+        var partitionForInsert = _partitions[partitionIndexForInsert];
         if (partitionForInsert.IsFull)
         {
             var isSplittingAtEnd = valueToInsert.CompareTo(partitionForInsert.HighestValue) >= 0;
@@ -210,6 +208,7 @@ public partial class SlidingWindowRanker<T> : IDisposable where T : IComparable<
         {
             partitionForInsert.Insert(valueToInsert);
         }
+        return partitionIndexForInsert + 1;
     }
 
     private void SplitPartition(IPartition<T> partitionForInsert, int partitionIndexForInsert, T valueToInsert)
@@ -236,25 +235,13 @@ public partial class SlidingWindowRanker<T> : IDisposable where T : IComparable<
     /// An insertion will increment the LowerBound of all partitions to the right of the partition holding the inserted value.
     /// A removal will decrement the LowerBound of all partitions to the right of the partition holding the inserted value.
     /// </summary>
-    /// <param name="partitionIndexChangedByInsert"></param>
-    /// <param name="partitionIndexChangedByRemove">-1 means no remove happened</param>
-    private void AdjustPartitionsLowerBounds(int partitionIndexChangedByInsert, int partitionIndexChangedByRemove)
+    /// <param name="beginIncrementsIndex">The partition index where we begin increments</param>
+    /// <param name="beginDecrementsIndex">The partition index where we begin decrements</param>
+    private void AdjustPartitionsLowerBounds(int beginIncrementsIndex, int beginDecrementsIndex)
     {
-        if (partitionIndexChangedByRemove < 0)
+        if (beginIncrementsIndex < beginDecrementsIndex)
         {
-            // No remove happened, so we must increment inserts up to the end
-            partitionIndexChangedByRemove = _partitions.Count - 1;
-        }
-        if (partitionIndexChangedByInsert < 0)
-        {
-            // No insert happened, so we must decrement removes up to the end
-            partitionIndexChangedByInsert = _partitions.Count - 1;
-        }
-        if (partitionIndexChangedByInsert < partitionIndexChangedByRemove)
-        {
-            // Increment the LowerBound of all partitions that must be changed
-            var endIndex = Math.Min(partitionIndexChangedByRemove, _partitions.Count - 1);
-            for (var i = partitionIndexChangedByInsert + 1; i <= endIndex; i++)
+            for (var i = beginIncrementsIndex; i < beginDecrementsIndex; i++)
             {
                 var partition = _partitions[i];
                 partition.LowerBound++;
@@ -262,9 +249,7 @@ public partial class SlidingWindowRanker<T> : IDisposable where T : IComparable<
         }
         else
         {
-            // Decrement the LowerBound of all partitions that must be changed
-            var endIndex = Math.Min(partitionIndexChangedByInsert, _partitions.Count - 1);
-            for (var i = partitionIndexChangedByRemove + 1; i <= endIndex; i++)
+            for (var i = beginDecrementsIndex; i < beginIncrementsIndex; i++)
             {
                 var partition = _partitions[i];
                 partition.LowerBound--;
