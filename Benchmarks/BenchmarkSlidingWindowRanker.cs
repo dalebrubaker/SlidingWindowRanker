@@ -15,7 +15,7 @@ public class BenchmarkSlidingWindowRanker
     private SlidingWindowRankerUnsafe<double> _rankerUnsafe;
     private List<double> _valuesToRank;
 
-    [Params(4000, 40000)]
+    [Params(4000, 40000, 400000, 4000000)]
     public int NumberOfTestValues { get; set; }
 
     private int WindowSize => NumberOfTestValues / 10;
