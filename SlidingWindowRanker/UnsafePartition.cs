@@ -27,8 +27,9 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
 
         // Center the initial values in this partition
         var middle = _capacity / 2;
-        _left = middle - _partitionSize / 2;
-        _right = _left + _partitionSize - 1;
+        var count = values.Count;
+        _left = middle - count / 2;
+        _right = _left + count - 1;
 
         // Pin the values array
         _bufferPtr = (T*)Marshal.AllocHGlobal(_capacity * sizeof(T));
@@ -42,7 +43,7 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
         {
             throw new InvalidOperationException("Failed to get pointer to values.");
         }
-        for (var i = 0; i < values.Count; i++)
+        for (var i = 0; i < count; i++)
         {
             var bufferIndex = _left + i;
             _bufferPtr[bufferIndex] = valuesArrayPtr[i];
@@ -89,33 +90,33 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
         {
             throw new InvalidOperationException("Partition is full. You must split the partition before inserting a new value.");
         }
-        var index = UnsafeArrayHelper.BinarySearch(_bufferPtr, _left, Count, value);
-        if (index < 0)
+        var indexIntoBuffer = UnsafeArrayHelper.BinarySearch(_bufferPtr, _left, Count, value);
+        if (indexIntoBuffer < 0)
         {
-            index = ~index; // Get the insertion point
+            indexIntoBuffer = ~indexIntoBuffer; // Get the insertion point
         }
-        index--; // insert before the binary search value
+        indexIntoBuffer--; // insert before the binary search value
 
-        var distanceToLeft = index - _capacityLeft;
-        var distanceToRight = _capacityRight - index;
         // Shift existing values to the right or to the left, whichever is closer, then insert the new value
+        var distanceToLeft = indexIntoBuffer - _capacityLeft;
+        var distanceToRight = _capacityRight - indexIntoBuffer;
         if (distanceToLeft < distanceToRight)
         {
-            for (var i = _left; i <= index; i++)
+            for (var i = _left; i <= indexIntoBuffer; i++)
             {
-                _bufferPtr[i - 1] = _bufferPtr[i];
+                *(_bufferPtr + i - 1) = *(_bufferPtr + i);
             }
             _left--;
-            _bufferPtr[index] = value;
+            *(_bufferPtr + indexIntoBuffer) = value;
         }
         else
         {
-            for (var i = _right; i > index; i--)
+            for (var i = _right; i > indexIntoBuffer; i--)
             {
-                _bufferPtr[i + 1] = _bufferPtr[i];
+                *(_bufferPtr + i + 1) = *(_bufferPtr + i);
             }
             _right++;
-            _bufferPtr[index + 1] = value;
+            *(_bufferPtr + indexIntoBuffer + 1) = value;
         }
     }
 
@@ -126,23 +127,65 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
             throw new SlidingWindowRankerException("Partition has only one value which cannot be removed. Remove the partition instead.");
         }
 
-        var index = UnsafeArrayHelper.BinarySearch(_bufferPtr, 0, Count, value);
-        if (index < 0)
+        var indexIntoBuffer = UnsafeArrayHelper.BinarySearch(_bufferPtr, _left, Count, value);
+        if (indexIntoBuffer < 0)
         {
             throw new SlidingWindowRankerException($"Value {value} not found in partition.");
         }
 
-        for (var i = index; i < Count - 1; i++)
+        var distanceToLeft = indexIntoBuffer - _capacityLeft;
+        var distanceToRight = _capacityRight - indexIntoBuffer;
+        // Remove the value and shift the remaining values to the left or to the right, whichever is closer
+        if (distanceToLeft > distanceToRight)
         {
-            _bufferPtr[i] = _bufferPtr[i + 1];
+            // Shift to the right
+            for (var i = indexIntoBuffer; i < _right; i++)
+            {
+                *(_bufferPtr + i) = *(_bufferPtr + i + 1);
+            }
+            _right--;
         }
-        // Decrement Count
+        else
+        {
+            // Shift to the left
+            for (var i = indexIntoBuffer; i > _left; i--)
+            {
+                *(_bufferPtr + i) = *(_bufferPtr + i - 1);
+            }
+            _left++;
+        }
     }
 
     public Partition<T> SplitAndInsert(T valueToInsert)
     {
-        // Implement split logic
-        return null; // Placeholder
+        var indexIntoBuffer = UnsafeArrayHelper.BinarySearch(_bufferPtr, _left, Count, valueToInsert);
+        if (indexIntoBuffer < 0)
+        {
+            indexIntoBuffer = ~indexIntoBuffer; // Get the insertion point
+        }
+        var isSplittingAtEnd = indexIntoBuffer >= _right;
+        var countValuesToGet = _right - indexIntoBuffer + 1;
+        var rightValues = GetRange(indexIntoBuffer, countValuesToGet);
+        _right -= countValuesToGet; // Effectively is RemoveRange
+
+        // Leave room to grow. But note that for small partitions,
+        // rightValues.Capacity may be a minimum of 4 here because of List.DefaultCapacity
+        var rightPartition = new Partition<T>(rightValues, _partitionSize);
+
+        // The LowerBound of this partition doesn't change
+        // The new partition starts after this partition
+        // BUT ignore the Insert below because AdjustPartitionsLowerBounds needs to do the incrementing/decrementing properly
+        rightPartition.LowerBound = LowerBound + Values.Count;
+        if (isSplittingAtEnd)
+        {
+            // We must add the value into the right partition because we can't allow it to be empty
+            rightPartition.Insert(valueToInsert);
+        }
+        else
+        {
+            Insert(valueToInsert);
+        }
+        return rightPartition;
     }
 
     public int GetLowerBoundWithinPartition(T value)
@@ -153,7 +196,7 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
 
     public bool Contains(T value)
     {
-        var index = UnsafeArrayHelper.BinarySearch(_bufferPtr, 0, Count, value);
+        var index = UnsafeArrayHelper.BinarySearch(_bufferPtr, _left, Count, value);
         return index >= 0;
     }
 
@@ -168,10 +211,47 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
             var result = new List<T>(Count);
             for (var i = _left; i <= _right; i++)
             {
-                result.Add(_bufferPtr[i]);
+
+                result.Add(*(_bufferPtr + i));
             }
             return result;
         }
+    }
+
+    public List<string> BufferValues
+    {
+        get
+        {
+            if (Count == 0)
+            {
+                return [];
+            }
+            var result = new List<string>(_capacity);
+            for (var i = _capacityLeft; i <= _capacityRight; i++)
+            {
+                if (i < _left || i > _right)
+                {
+                    result.Add("N/A");
+                    continue;
+                }
+                var value = *(_bufferPtr + i);
+                result.Add(value.ToString());
+            }
+            return result;
+        }
+    }
+
+
+
+
+    private List<T> GetRange(int indexIntoBuffer, int count)
+    {
+        var result = new List<T>(count);
+        for (var i = 0; i < count; i++)
+        {
+            result.Add(*(_bufferPtr + indexIntoBuffer + i));
+        }
+        return result;
     }
 
     ~UnsafePartition()

@@ -11,38 +11,37 @@ public class UnsafePartitionTests
         var values = new List<int> { 1, 2, 3 };
 
         // Act
-        var partition = new UnsafePartition<int>(values);
+        using var partition = new UnsafePartition<int>(values);
 
         // Assert
         partition.Values.Should().Equal(values);
     }
 
-    [Fact (Skip = "WIP")]
+    [Fact]
     public void NeedsSplitting_ShouldReturnTrue_WhenCapacityReached()
     {
         // Arrange
         var values = new List<int> { 1, 2, 3 };
-        var partition = new UnsafePartition<int>(values);
-        partition.Insert(4);
+        using var partition = new UnsafePartition<int>(values, 4);
         partition.Insert(4);
         partition.IsFull.Should().BeFalse();
         partition.Insert(4);
-
         // Assert
-        partition.IsFull.Should().BeTrue();
+        partition.IsFull.Should().BeTrue("Because we've inserted up to the right edge of the partition");
     }
 
-    [Fact (Skip = "WIP")]
+    [Fact]
     public void SplittingPartitionAtBeginningOfPartition_ShouldMaintainCorrectLowerBounds()
     {
         // Arrange
         var values = new List<int> { 1, 2, 3 };
-        var partition = new UnsafePartition<int>(values);
-        partition.Insert(4);
+        using var partition = new UnsafePartition<int>(values, 4);
         partition.Insert(4);
         partition.IsFull.Should().BeFalse();
-        partition.Insert(4);
-        partition.IsFull.Should().BeTrue();
+        partition.Insert(5);
+
+        // Assert
+        partition.IsFull.Should().BeTrue("Because we've inserted up to the right edge of the partition");
         var partitionLowerBound = partition.LowerBound;
 
         // Act
@@ -63,11 +62,11 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 2, 3 };
-        var partition = new UnsafePartition<int>(values);
+        using var partition = new UnsafePartition<int>(values);
         partition.Insert(4);
-        partition.Insert(4);
+        partition.Insert(5);
         partition.IsFull.Should().BeFalse();
-        partition.Insert(4);
+        partition.Insert(6);
         partition.IsFull.Should().BeTrue();
         var partitionLowerBound = partition.LowerBound;
 
@@ -89,7 +88,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 2, 3 };
-        var partition = new UnsafePartition<int>(values);
+        using var partition = new UnsafePartition<int>(values);
         partition.Insert(4);
         partition.Insert(4);
         partition.IsFull.Should().BeFalse();
@@ -115,7 +114,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 3, 5 };
-        var partition = new UnsafePartition<int>(values);
+        using var partition = new UnsafePartition<int>(values);
 
         // Act
         partition.Insert(4);
@@ -129,7 +128,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 3, 5 };
-        var partition = new UnsafePartition<int>(values);
+        using var partition = new UnsafePartition<int>(values);
 
         // Act
         partition.Insert(2);
@@ -138,17 +137,31 @@ public class UnsafePartitionTests
         partition.Values.Should().Equal(new List<int> { 1, 2, 3, 5 });
     }
 
-    [Fact (Skip = "WIP")]
-    public void Remove_ShouldRemoveValue()
+    [Fact]
+    public void Remove_ShouldRemoveValueCloserToRight()
     {
         // Arrange
-        var values = new List<int> { 1, 3, 5 };
-        var partition = new UnsafePartition<int>(values);
+        var values = new List<int> { 1, 2, 3, 4, 5 };
+        using var partition = new UnsafePartition<int>(values);
 
         // Act
-        partition.Remove(3);
+        partition.Remove(4);
 
         // Assert
-        partition.Values.Should().Equal(new List<int> { 1, 5 });
+        partition.Values.Should().Equal(new List<int> { 1, 2, 3, 5 });
+    }
+    
+    [Fact]
+    public void Remove_ShouldRemoveValueCloserToLeft()
+    {
+        // Arrange
+        var values = new List<int> { 1, 2, 3, 4, 5 };
+        using var partition = new UnsafePartition<int>(values);
+
+        // Act
+        partition.Remove(2);
+
+        // Assert
+        partition.Values.Should().Equal(new List<int> { 1, 3, 4, 5 });
     }
 }
