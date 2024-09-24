@@ -215,7 +215,7 @@ public class SlidingWindowRankerUnsafeTests
         }
     }
 
-    [Fact]
+    [Fact (Skip = "Fails on Github due to path not found")]
     public void DebugTest2()
     {
         // Initial values copied from the benchmark
