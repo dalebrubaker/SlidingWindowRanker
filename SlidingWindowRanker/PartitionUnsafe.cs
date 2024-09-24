@@ -31,12 +31,20 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
         _left = middle - count / 2;
         _right = _left + count - 1;
 
-        // Pin the values array
         _bufferPtr = (T*)Marshal.AllocHGlobal(_capacity * sizeof(T));
         if (_bufferPtr == null)
         {
             throw new OutOfMemoryException("Failed to allocate memory for partition.");
         }
+        if (count > 0)
+        {
+            LoadInitialValuesIntoBuffer(values, count);
+        }
+    }
+
+    private void LoadInitialValuesIntoBuffer(List<T> values, int count)
+    {
+        // Pin the values array
         var valuesHandle = GCHandle.Alloc(values.ToArray(), GCHandleType.Pinned);
         var valuesArrayPtr = (T*)valuesHandle.AddrOfPinnedObject();
         if (valuesArrayPtr == null)
@@ -213,8 +221,9 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
 
     public int GetLowerBoundWithinPartition(T value)
     {
-        // Implement logic to find lower bound
-        return 0; // Placeholder
+        var index = UnsafeArrayHelper.LowerBound(_bufferPtr, _left, Count, value);
+        index -= _left;
+        return index;
     }
 
     public bool Contains(T value)
