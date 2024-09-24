@@ -2,7 +2,7 @@
 // ReSharper disable InconsistentNaming
 namespace SlidingWindowRanker;
 
-internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unmanaged, IComparable<T>
+internal partial class PartitionUnsafe<T> where T : unmanaged, IComparable<T>
 {
     internal int Test_PartitionSize => _partitionSize;
     internal int Test_PartitionCapacity => Values.Capacity;

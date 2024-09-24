@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Xunit.Abstractions;
+
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 
 namespace SlidingWindowRanker.Tests;

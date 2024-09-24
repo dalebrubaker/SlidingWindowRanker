@@ -4,7 +4,7 @@
 // ReSharper disable ConvertToAutoPropertyWithPrivateSetter
 namespace SlidingWindowRanker;
 
-public partial class SlidingWindowRanker<T> where T : IComparable<T>
+public partial class SlidingWindowRankerBase<T> where T : IComparable<T>
 {
     internal List<IPartition<T>> TestPartitions => _partitions;
     internal List<T> TestValues => _partitions.SelectMany(p => p.Values).ToList();

@@ -117,38 +117,61 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
 
     public void Insert(T value)
     {
+#if DEBUG
         if (IsFull)
         {
             throw new InvalidOperationException("Partition is full. You must split the partition before inserting a new value.");
         }
+#endif
         var indexIntoBuffer = UnsafeArrayHelper.BinarySearch(_bufferPtr, _left, Count, value);
         if (indexIntoBuffer < 0)
         {
             indexIntoBuffer = ~indexIntoBuffer; // Get the insertion point
         }
-        indexIntoBuffer--; // insert before the binary search value
 
-        // Shift existing values to the right or to the left, whichever is closer, then insert the new value
-        var distanceToLeft = indexIntoBuffer - _capacityLeft;
-        var distanceToRight = _capacityRight - indexIntoBuffer;
-        if (distanceToLeft < distanceToRight)
+        // Shift existing values to the right or to the left, whichever is fewer, then insert the new value
+        var distanceToLeft = indexIntoBuffer - _left;
+        var distanceToRight = _right - indexIntoBuffer;
+        bool moveRight; 
+        if (distanceToRight == distanceToLeft)
         {
-            for (var i = _left; i <= indexIntoBuffer; i++)
-            {
-                *(_bufferPtr + i - 1) = *(_bufferPtr + i);
-            }
-            _left--;
+            // Shift where we have more room in the buffer
+            var roomToLeft = _left - _capacityLeft;
+            var roomToRight = _capacityRight - _right;
+            moveRight = roomToRight > roomToLeft;
+        }
+        else
+        {
+            moveRight = distanceToRight < distanceToLeft;
+        }
+        if (moveRight)
+        {
+            ShiftValuesToRightFromInsertionPoint(indexIntoBuffer);
             *(_bufferPtr + indexIntoBuffer) = value;
         }
         else
         {
-            for (var i = _right; i > indexIntoBuffer; i--)
-            {
-                *(_bufferPtr + i + 1) = *(_bufferPtr + i);
-            }
-            _right++;
-            *(_bufferPtr + indexIntoBuffer + 1) = value;
+            ShiftValuesToLeftFromInsertionPoint(indexIntoBuffer);
+            *(_bufferPtr + indexIntoBuffer - 1) = value;
         }
+    }
+
+    private void ShiftValuesToRightFromInsertionPoint(int indexIntoBuffer)
+    {
+        for (var i = _right; i >= indexIntoBuffer; i--)
+        {
+            *(_bufferPtr + i + 1) = *(_bufferPtr + i);
+        }
+        _right++;
+    }
+
+    private void ShiftValuesToLeftFromInsertionPoint(int indexIntoBuffer)
+    {
+        for (var i = _left; i < indexIntoBuffer; i++)
+        {
+            *(_bufferPtr + i - 1) = *(_bufferPtr + i);
+        }
+        _left--;
     }
 
     public void Remove(T value)
@@ -198,6 +221,20 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
         var countValuesToGet = _right - indexIntoBuffer + 1;
         var rightValues = GetRange(indexIntoBuffer, countValuesToGet);
         _right -= countValuesToGet; // Effectively is RemoveRange
+        if (_left == _capacityLeft)
+        {
+            // This partition is still full because we are up against the left side. Center the values
+            var middle = _capacity / 2 - 1;
+            var count = Count;
+            var newLeft = middle - count / 2;
+            var countToShift = newLeft - _left;
+            for (int i = _left; i <  _left + countToShift; i++)
+            {
+                *(_bufferPtr + i + countToShift) = *(_bufferPtr + i);
+            }
+            _left += countToShift;
+            _right += countToShift;
+        }
 
         // Leave room to grow. But note that for small partitions,
         // rightValues.Capacity may be a minimum of 4 here because of List.DefaultCapacity

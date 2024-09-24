@@ -4,12 +4,12 @@ using Xunit.Abstractions;
 
 namespace SlidingWindowRanker.Tests;
 
-public class SlidingWindowRankerUnsafeUnsafeTests
+public class SlidingWindowRankerUnsafeTests
 {
     private readonly ITestOutputHelper _output;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public SlidingWindowRankerUnsafeUnsafeTests(ITestOutputHelper output)
+    public SlidingWindowRankerUnsafeTests(ITestOutputHelper output)
     {
         _output = output;
     }
@@ -207,7 +207,7 @@ public class SlidingWindowRankerUnsafeUnsafeTests
         for (var index = WindowSize; index < valuesToRank.Count; index++)
         {
             var value = valuesToRank[index];
-            if (index == 60)
+            if (index == 15)
             {
             }
             var rank = ranker.GetRank(value);
