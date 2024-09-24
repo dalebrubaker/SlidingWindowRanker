@@ -38,6 +38,7 @@ public class SlidingWindowRankerUnsafe<T> : SlidingWindowRankerBase<T> where T :
                 "The partition count must be at least 1, in order to have values to rank against.");
         }
         _valueQueue = new Queue<T>(initialValues);
+        _isQueueFull = _valueQueue.Count >= _windowSize;
         List<T> values;
         if (!isSorted)
         {

@@ -25,7 +25,7 @@ public partial class SlidingWindowRankerBase<T> : IDisposable where T : ICompara
     /// </summary>
     protected int _windowSize;
 
-    private bool IsQueueFull => _valueQueue.Count >= _windowSize;
+    protected bool _isQueueFull;
 
     public int CountPartitionSplits { get; private set; }
 
@@ -56,15 +56,19 @@ public partial class SlidingWindowRankerBase<T> : IDisposable where T : ICompara
     /// <returns>The fraction of values in the window that are less than the specified value.</returns>
     public double GetRank(T valueToInsert)
     {
-        var valueToRemove = IsQueueFull ? _valueQueue.Dequeue() : default;
+        var valueToRemove = _isQueueFull ? _valueQueue.Dequeue() : default;
         _valueQueue.Enqueue(valueToInsert);
+        if (!_isQueueFull && _valueQueue.Count >= _windowSize)
+        {
+            _isQueueFull = true;
+        }
 #if DEBUG
         _debugMessageRemove = null;
         _debugMessageInsert = null;
 #endif
         var partitionIndexForInsert = FindPartitionContaining(valueToInsert);
         var beginIncrementsIndex = DoInsert(valueToInsert, ref partitionIndexForInsert);
-        var partitionIndexForRemove = IsQueueFull ? FindPartitionContaining(valueToRemove) : int.MaxValue;
+        var partitionIndexForRemove = _isQueueFull ? FindPartitionContaining(valueToRemove) : int.MaxValue;
         var beginDecrementsIndex = DoRemove(partitionIndexForRemove, ref partitionIndexForInsert, valueToRemove, ref beginIncrementsIndex);
         AdjustPartitionsLowerBounds(beginIncrementsIndex, beginDecrementsIndex);
         var partitionForInsert = _partitions[partitionIndexForInsert];
@@ -72,7 +76,9 @@ public partial class SlidingWindowRankerBase<T> : IDisposable where T : ICompara
         // Now get the rank
         var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToInsert);
         var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
-        var rank = (double)lowerBound / _valueQueue.Count; // Use _valueQueue.Count instead of _windowSize because the window may not be full yet
+        var rank = _isQueueFull 
+            ? (double)lowerBound / _windowSize 
+            : (double)lowerBound / _valueQueue.Count; // Use _valueQueue.Count instead of _windowSize when the window is not yet full
         return rank;
     }
 
@@ -86,7 +92,7 @@ public partial class SlidingWindowRankerBase<T> : IDisposable where T : ICompara
     /// <returns>the beginDecrementIndex - the index above which index must be decremented</returns>
     private int DoRemove(int partitionIndexForRemove, ref int partitionIndexForInsert, T valueToRemove, ref int beginIncrementsIndex)
     {
-        if (!IsQueueFull)
+        if (!_isQueueFull)
         {
             return _partitions.Count; // No removal
         }
