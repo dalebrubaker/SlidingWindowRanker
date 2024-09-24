@@ -4,8 +4,8 @@ using SlidingWindowRanker;
 
 namespace Benchmarks;
 
-[MemoryDiagnoser]
-[ThreadingDiagnoser]
+//[MemoryDiagnoser]
+//[ThreadingDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [RankColumn]
 public class BenchmarkSlidingWindowRanker
@@ -15,7 +15,7 @@ public class BenchmarkSlidingWindowRanker
     private SlidingWindowRankerUnsafe<double> _rankerUnsafe;
     private List<double> _valuesToRank;
 
-    [Params(1000000)]
+    [Params(4000, 40000)]
     public int NumberOfTestValues { get; set; }
 
     private int WindowSize => NumberOfTestValues / 10;
@@ -23,8 +23,7 @@ public class BenchmarkSlidingWindowRanker
     private int NumberOfPartitions => (int)Math.Sqrt(WindowSize);
 
     //[Params(0.5, 0.75, 1.0, 1.25)]
-    [Params(2.0)]
-    public double MultipleOfNumberOfPartitions { get; set; }
+    //public double PartitionsMultipleOfDefault { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -40,9 +39,9 @@ public class BenchmarkSlidingWindowRanker
         s_ValuesToRankStr = string.Join(',', valuesToRank);
         _valuesToRank = [..valuesToRank];
         var initialValues = _valuesToRank.Take(WindowSize).ToList();
-        var numberOfPartitions = (int)(NumberOfPartitions * MultipleOfNumberOfPartitions);
-        _rankerSafe = new SlidingWindowRanker<double>(initialValues, numberOfPartitions);
-        _rankerUnsafe = new SlidingWindowRankerUnsafe<double>(initialValues, numberOfPartitions);
+        //var numberOfPartitions = (int)(NumberOfPartitions * MultipleOfNumberOfPartitions);
+        _rankerSafe = new SlidingWindowRanker<double>(initialValues); //, numberOfPartitions);
+        _rankerUnsafe = new SlidingWindowRankerUnsafe<double>(initialValues); //, numberOfPartitions);
     }
 
     [GlobalCleanup]
