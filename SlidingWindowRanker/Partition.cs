@@ -47,7 +47,7 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
 
     public void Dispose()
     {
-        // Nothing to do. Disposable because of UnsafePartition
+        // Nothing to do. Disposable because of PartitionUnsafe
         GC.SuppressFinalize(this);
     }
 

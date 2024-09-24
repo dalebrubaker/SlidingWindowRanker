@@ -2,7 +2,7 @@
 
 namespace SlidingWindowRanker;
 
-internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IComparable<T>
+internal unsafe class PartitionUnsafe<T> : IPartition<T> where T : unmanaged, IComparable<T>
 {
     private readonly int _capacity;
     private readonly int _capacityLeft;
@@ -14,7 +14,7 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
     private int _left;
     private int _right;
 
-    public UnsafePartition(List<T> values, int partitionSize = -1)
+    public PartitionUnsafe(List<T> values, int partitionSize = -1)
     {
         _partitionSize = partitionSize < 0 ? values.Count : partitionSize;
         if (_partitionSize == 0)
@@ -250,7 +250,7 @@ internal unsafe class UnsafePartition<T> : IPartition<T> where T : unmanaged, IC
         return result;
     }
 
-    ~UnsafePartition()
+    ~PartitionUnsafe()
     {
         Dispose();
     }

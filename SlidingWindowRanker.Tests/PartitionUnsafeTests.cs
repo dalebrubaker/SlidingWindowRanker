@@ -2,7 +2,7 @@
 
 namespace SlidingWindowRanker.Tests;
 
-public class UnsafePartitionTests
+public class PartitionUnsafeTests
 {
     [Fact]
     public void Constructor_ShouldInitializeValues()
@@ -11,7 +11,7 @@ public class UnsafePartitionTests
         var values = new List<int> { 1, 2, 3 };
 
         // Act
-        using var partition = new UnsafePartition<int>(values);
+        using var partition = new PartitionUnsafe<int>(values);
 
         // Assert
         partition.Values.Should().Equal(values);
@@ -22,7 +22,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 2, 3 };
-        using var partition = new UnsafePartition<int>(values, 4);
+        using var partition = new PartitionUnsafe<int>(values, 4);
         partition.Insert(4);
         partition.IsFull.Should().BeFalse();
         partition.Insert(4);
@@ -35,7 +35,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 2, 3 };
-        using var partition = new UnsafePartition<int>(values, 4);
+        using var partition = new PartitionUnsafe<int>(values, 4);
         partition.Insert(4);
         partition.IsFull.Should().BeFalse();
         partition.Insert(5);
@@ -62,7 +62,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 2, 3 };
-        using var partition = new UnsafePartition<int>(values, 4);
+        using var partition = new PartitionUnsafe<int>(values, 4);
         partition.Insert(4);
         partition.IsFull.Should().BeFalse();
         partition.Insert(4);
@@ -87,7 +87,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 2, 3 };
-        using var partition = new UnsafePartition<int>(values, 4);
+        using var partition = new PartitionUnsafe<int>(values, 4);
         partition.Insert(4);
         partition.IsFull.Should().BeFalse();
         partition.Insert(4);
@@ -112,7 +112,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 3, 5 };
-        using var partition = new UnsafePartition<int>(values);
+        using var partition = new PartitionUnsafe<int>(values);
 
         // Act
         partition.Insert(4);
@@ -126,7 +126,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 3, 5 };
-        using var partition = new UnsafePartition<int>(values);
+        using var partition = new PartitionUnsafe<int>(values);
 
         // Act
         partition.Insert(2);
@@ -140,7 +140,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 2, 3, 4, 5 };
-        using var partition = new UnsafePartition<int>(values);
+        using var partition = new PartitionUnsafe<int>(values);
 
         // Act
         partition.Remove(4);
@@ -154,7 +154,7 @@ public class UnsafePartitionTests
     {
         // Arrange
         var values = new List<int> { 1, 2, 3, 4, 5 };
-        using var partition = new UnsafePartition<int>(values);
+        using var partition = new PartitionUnsafe<int>(values);
 
         // Act
         partition.Remove(2);
