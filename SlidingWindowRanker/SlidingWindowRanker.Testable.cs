@@ -7,16 +7,7 @@ namespace SlidingWindowRanker;
 public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
     internal List<IPartition<T>> TestPartitions => _partitions;
-    internal List<T> TestValues => GetValues();
-
-    /// <summary>
-    /// For debugging, return the values in all partitions.
-    /// </summary>
-    /// <returns></returns>
-    internal List<T> GetValues()
-    {
-        return _partitions.SelectMany(p => p.Values).ToList();
-    }
+    internal List<T> TestValues => _partitions.SelectMany(p => p.Values).ToList();
 
     internal void Test_DoInsert(T valueToInsert)
     {

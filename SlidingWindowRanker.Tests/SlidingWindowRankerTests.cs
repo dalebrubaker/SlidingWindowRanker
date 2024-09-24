@@ -21,8 +21,7 @@ public class SlidingWindowRankerTests
         var ranker = new SlidingWindowRanker<int>(initialValues, 2);
         var rank = ranker.GetRank(3);
 
-        var values = ranker.GetValues();
-        values.Should().BeEquivalentTo(new[] { 2, 3, 3, 4, 5 });
+        ranker.TestValues.Should().BeEquivalentTo(new[] { 2, 3, 3, 4, 5 });
 
         // The first value (1) is removed and the 3 is inserted, leaving the values [2, 3, 3, 4, 5]
         rank.Should().BeApproximately(0.2, 1);
@@ -44,8 +43,7 @@ public class SlidingWindowRankerTests
         var ranker = new SlidingWindowRanker<int>(initialValues, 2);
         var rank = ranker.GetRank(6);
 
-        var values = ranker.GetValues();
-        values.Should().BeEquivalentTo(new[] { 2, 3, 4, 5, 6 });
+        ranker.TestValues.Should().BeEquivalentTo(new[] { 2, 3, 4, 5, 6 });
 
         rank.Should().Be(4 / 5.0);
     }
@@ -79,8 +77,7 @@ public class SlidingWindowRankerTests
         rank.Should().Be(0.0);
 
         var rank5 = ranker.GetRank(6);
-        var values = ranker.GetValues();
-        values.Should().BeEquivalentTo(new[] { 5, 6 });
+        ranker.TestValues.Should().BeEquivalentTo(new[] { 5, 6 });
         rank5.Should().Be(0.5);
     }
 
@@ -185,7 +182,7 @@ public class SlidingWindowRankerTests
 
     private double ExpectedRank(SlidingWindowRanker<int> ranker, int value)
     {
-        var values = ranker.GetValues();
+        var values = ranker.TestValues;
         var isSortedAscending = values.IsSortedAscending();
         isSortedAscending.Should().BeTrue();
         var lowerValuesCount = values.Count(v => v < value);
@@ -224,8 +221,7 @@ public class SlidingWindowRankerTests
         var ranker = new SlidingWindowRanker<int>(initialValues, 2);
         var rank = ranker.GetRank(int.MaxValue);
 
-        var values = ranker.GetValues();
-        values.Should().BeEquivalentTo(new[] { 2, 3, 4, 5, int.MaxValue });
+        ranker.TestValues.Should().BeEquivalentTo(new[] { 2, 3, 4, 5, int.MaxValue });
 
         rank.Should().Be(4 / 5.0);
     }
@@ -237,8 +233,7 @@ public class SlidingWindowRankerTests
         var ranker = new SlidingWindowRanker<int>(initialValues, 2);
         var rank = ranker.GetRank(int.MinValue);
 
-        var values = ranker.GetValues();
-        values.Should().BeEquivalentTo(new[] { int.MinValue, 2, 3, 4, 5 });
+        ranker.TestValues.Should().BeEquivalentTo(new[] { int.MinValue, 2, 3, 4, 5 });
 
         rank.Should().Be(0.0);
     }
