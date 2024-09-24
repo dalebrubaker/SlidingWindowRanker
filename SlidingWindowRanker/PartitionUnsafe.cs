@@ -210,14 +210,14 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
         }
     }
 
-    public IPartition<T> SplitAndInsert(T valueToInsert)
+    public (IPartition<T> partition, bool isSplitIntoRightPartition) SplitAndInsert(T valueToInsert)
     {
         var indexIntoBuffer = UnsafeArrayHelper.BinarySearch(_bufferPtr, _left, Count, valueToInsert);
         if (indexIntoBuffer < 0)
         {
             indexIntoBuffer = ~indexIntoBuffer; // Get the insertion point
         }
-        var isSplittingAtEnd = indexIntoBuffer >= _right;
+        var isSplitIntoRightPartition = indexIntoBuffer >= _right;
         var countValuesToGet = _right - indexIntoBuffer + 1;
         var rightValues = GetRange(indexIntoBuffer, countValuesToGet);
         _right -= countValuesToGet; // Effectively is RemoveRange
@@ -244,7 +244,7 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
         // The new partition starts after this partition
         // BUT ignore the Insert below because AdjustPartitionsLowerBounds needs to do the incrementing/decrementing properly
         rightPartition.LowerBound = LowerBound + Values.Count;
-        if (isSplittingAtEnd)
+        if (isSplitIntoRightPartition)
         {
             // We must add the value into the right partition because we can't allow it to be empty
             rightPartition.Insert(valueToInsert);
@@ -253,7 +253,7 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
         {
             Insert(valueToInsert);
         }
-        return rightPartition;
+        return (rightPartition, isSplitIntoRightPartition);
     }
 
     public int GetLowerBoundWithinPartition(T value)

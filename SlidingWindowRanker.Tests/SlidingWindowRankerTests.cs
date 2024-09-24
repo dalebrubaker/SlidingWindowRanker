@@ -233,7 +233,6 @@ public class SlidingWindowRankerTests
         using var ranker = new SlidingWindowRanker<int>(initialValues, 2);
         var rank = ranker.GetRank(int.MinValue);
 
-        var values = ranker.GetValues();
         ranker.TestValues.Should().BeEquivalentTo(new[] { int.MinValue, 2, 3, 4, 5 });
 
         rank.Should().Be(0.0);

@@ -91,10 +91,10 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
     /// </summary>
     /// <param name="valueToInsert"></param>
     /// <returns>the Partition to insert AFTER this partition.</returns>
-    public IPartition<T> SplitAndInsert(T valueToInsert)
+    public (IPartition<T> partition, bool isSplitIntoRightPartition) SplitAndInsert(T valueToInsert)
     {
         var splitIndex = Values.LowerBound(valueToInsert);
-        var isSplittingAtEnd = splitIndex == Values.Count;
+        var isSplitIntoRightPartition = splitIndex == Values.Count;
         var rightValues = Values.GetRange(splitIndex, Values.Count - splitIndex);
         Values.RemoveRange(splitIndex, Values.Count - splitIndex);
 
@@ -107,7 +107,7 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
         // The new partition starts after this partition
         // BUT ignore the Insert below because AdjustPartitionsLowerBounds needs to do the incrementing/decrementing properly
         rightPartition.LowerBound = LowerBound + Values.Count;
-        if (isSplittingAtEnd)
+        if (isSplitIntoRightPartition)
         {
             // We must add the value into the right partition because we can't allow it to be empty
             rightPartition.Insert(valueToInsert);
@@ -116,7 +116,7 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
         {
             Insert(valueToInsert);
         }
-        return rightPartition;
+        return (rightPartition, isSplitIntoRightPartition);
     }
 
     public int GetLowerBoundWithinPartition(T value)

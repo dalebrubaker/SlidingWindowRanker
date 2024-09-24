@@ -44,7 +44,7 @@ public interface IPartition<T> : IDisposable where T : IComparable<T>
     /// </summary>
     /// <param name="valueToInsert"></param>
     /// <returns>the Partition to insert AFTER this partition.</returns>
-    IPartition<T> SplitAndInsert(T valueToInsert);
+    (IPartition<T> partition, bool isSplitIntoRightPartition) SplitAndInsert(T valueToInsert);
 
     int GetLowerBoundWithinPartition(T value);
 

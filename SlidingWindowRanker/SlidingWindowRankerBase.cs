@@ -95,7 +95,7 @@ public partial class SlidingWindowRankerBase<T> : IDisposable where T : ICompara
             return _partitions.Count; // No removal
         }
         var partitionForRemove = _partitions[partitionIndexForRemove];
-        if (partitionForRemove.Count == 1 && partitionIndexForRemove != partitionIndexForInsert)
+        if (partitionForRemove.Count == 1)
         {
             // The partition holding the value to remove will be empty after the remove
             // But don't remove the partition because we are about to insert a value into it
@@ -119,12 +119,14 @@ public partial class SlidingWindowRankerBase<T> : IDisposable where T : ICompara
     /// <returns>the beginIncrementsIndex - the index above which index must be incremented</returns>
     private int DoInsert(T valueToInsert, ref int partitionIndexForInsert)
     {
+        if (valueToInsert.ToString() == "94.1" && partitionIndexForInsert == 3)
+        {
+        }
         var partitionForInsert = _partitions[partitionIndexForInsert];
         if (partitionForInsert.IsFull)
         {
-            var isSplittingAtEnd = valueToInsert.CompareTo(partitionForInsert.HighestValue) >= 0;
-            SplitPartition(partitionForInsert, partitionIndexForInsert, valueToInsert);
-            if (isSplittingAtEnd)
+            var isSplitIntoRightPartition = SplitPartition(partitionForInsert, partitionIndexForInsert, valueToInsert);
+            if (isSplitIntoRightPartition)
             {
                 // The value to insert is the highest value in the partition, so we must insert it into the right partition
                 partitionIndexForInsert++;
@@ -137,14 +139,15 @@ public partial class SlidingWindowRankerBase<T> : IDisposable where T : ICompara
         return partitionIndexForInsert + 1;
     }
 
-    private void SplitPartition(IPartition<T> partitionForInsert, int partitionIndexForInsert, T valueToInsert)
+    private bool SplitPartition(IPartition<T> partitionForInsert, int partitionIndexForInsert, T valueToInsert)
     {
         CountPartitionSplits++;
-        var rightPartition = partitionForInsert.SplitAndInsert(valueToInsert);
+        var (rightPartition, isSplitIntoRightPartition) = partitionForInsert.SplitAndInsert(valueToInsert);
         _partitions.Insert(partitionIndexForInsert + 1, rightPartition);
 #if DEBUG
         _debugMessageInsert = $"Split partitionForInsert={partitionForInsert} and inserted it at partitionIndexForInsert={partitionIndexForInsert}";
 #endif
+        return isSplitIntoRightPartition;
     }
 
     private void RemovePartition(int partitionIndexForRemove, IPartition<T> partitionForRemove)

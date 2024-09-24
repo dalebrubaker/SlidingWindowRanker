@@ -11,7 +11,8 @@ namespace Benchmarks;
 public class BenchmarkSlidingWindowRanker
 {
     private static string s_ValuesToRankStr;
-    private SlidingWindowRanker<double> _ranker;
+    private SlidingWindowRanker<double> _rankerSafe;
+    private SlidingWindowRankerUnsafe<double> _rankerUnsafe;
     private List<double> _valuesToRank;
 
     [Params(1000000)]
@@ -21,7 +22,8 @@ public class BenchmarkSlidingWindowRanker
 
     private int NumberOfPartitions => (int)Math.Sqrt(WindowSize);
 
-    [Params(0.25, 0.75, 1.0, 1.25, 1.75, 2.0)]
+    //[Params(0.5, 0.75, 1.0, 1.25)]
+    [Params(2.0)]
     public double MultipleOfNumberOfPartitions { get; set; }
 
     [GlobalSetup]
@@ -38,16 +40,35 @@ public class BenchmarkSlidingWindowRanker
         s_ValuesToRankStr = string.Join(',', valuesToRank);
         _valuesToRank = [..valuesToRank];
         var initialValues = _valuesToRank.Take(WindowSize).ToList();
-        _ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
+        var numberOfPartitions = (int)(NumberOfPartitions * MultipleOfNumberOfPartitions);
+        _rankerSafe = new SlidingWindowRanker<double>(initialValues, numberOfPartitions);
+        _rankerUnsafe = new SlidingWindowRankerUnsafe<double>(initialValues, numberOfPartitions);
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        _rankerSafe?.Dispose();
+        _rankerUnsafe?.Dispose();
     }
 
     [Benchmark]
-    public void RankValues()
+    public void RankValuesSafe()
     {
         for (var index = WindowSize; index < NumberOfTestValues; index++)
         {
             var value = _valuesToRank[index];
-            var rank = _ranker.GetRank(value);
+            var rank = _rankerSafe.GetRank(value);
+        }
+    }
+
+    [Benchmark(Baseline = true)]
+    public void RankValuesUnsafe()
+    {
+        for (var index = WindowSize; index < NumberOfTestValues; index++)
+        {
+            var value = _valuesToRank[index];
+            var rank = _rankerUnsafe.GetRank(value);
         }
     }
 }
