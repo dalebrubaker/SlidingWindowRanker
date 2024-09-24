@@ -57,16 +57,15 @@ public class UnsafePartitionTests
         lowerBoundOfValueInPartition.Should().Be(0, "the value should be in the old (left) partition");
     }
 
-    [Fact (Skip = "WIP")]
+    [Fact]
     public void SplittingPartitionAtEndOfPartition_ShouldMaintainCorrectLowerBounds()
     {
         // Arrange
         var values = new List<int> { 1, 2, 3 };
-        using var partition = new UnsafePartition<int>(values);
+        using var partition = new UnsafePartition<int>(values, 4);
         partition.Insert(4);
-        partition.Insert(5);
         partition.IsFull.Should().BeFalse();
-        partition.Insert(6);
+        partition.Insert(4);
         partition.IsFull.Should().BeTrue();
         var partitionLowerBound = partition.LowerBound;
 
@@ -83,13 +82,12 @@ public class UnsafePartitionTests
         lowerBoundOfValueInPartition.Should().Be(0, "the value should be in the old (left) partition");
     }
 
-    [Fact (Skip = "WIP")]
+    [Fact]
     public void SplittingPartitionInMiddleOfPartition_ShouldMaintainCorrectLowerBounds()
     {
         // Arrange
         var values = new List<int> { 1, 2, 3 };
-        using var partition = new UnsafePartition<int>(values);
-        partition.Insert(4);
+        using var partition = new UnsafePartition<int>(values, 4);
         partition.Insert(4);
         partition.IsFull.Should().BeFalse();
         partition.Insert(4);
