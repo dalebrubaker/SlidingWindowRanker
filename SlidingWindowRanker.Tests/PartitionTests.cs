@@ -48,7 +48,7 @@ public class PartitionTests
 
         // Act
         const int ValueToInsert = 0;
-        var rightPartition = partition.SplitAndInsert(ValueToInsert);
+        var (rightPartition, isSplitIntoRightPartition) = partition.SplitAndInsert(ValueToInsert);
         partition.LowerBound.Should().Be(partitionLowerBound, "the lower bound should not change");
         rightPartition.LowerBound.Should().Be(partitionLowerBound + partition.Count - 1, "Not adjusted yet");
         partition.Contains(ValueToInsert).Should().BeTrue("the value should be in the old (left) partition");
@@ -74,7 +74,7 @@ public class PartitionTests
 
         // Act
         const int ValueToInsert = 4;
-        var rightPartition = partition.SplitAndInsert(ValueToInsert);
+        var (rightPartition, isSplitIntoRightPartition) = partition.SplitAndInsert(ValueToInsert);
         partition.LowerBound.Should().Be(partitionLowerBound);
         rightPartition.LowerBound.Should().Be(partitionLowerBound + partition.Count - 1, "Not adjusted yet");
         rightPartition.Contains(ValueToInsert).Should().BeTrue("the value should be in the old (left) partition");
@@ -100,7 +100,7 @@ public class PartitionTests
 
         // Act
         const int ValueToInsert = 2;
-        var rightPartition = partition.SplitAndInsert(ValueToInsert);
+        var (rightPartition, isSplitIntoRightPartition) = partition.SplitAndInsert(ValueToInsert);
         partition.LowerBound.Should().Be(partitionLowerBound);
         rightPartition.LowerBound.Should().Be(partitionLowerBound + partition.Count - 1, "Not adjusted yet");
         partition.Contains(ValueToInsert).Should().BeTrue("the value should be in the old (left) partition");

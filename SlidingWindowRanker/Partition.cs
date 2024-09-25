@@ -1,4 +1,7 @@
-﻿namespace SlidingWindowRanker;
+﻿using System;
+using System.ComponentModel.Design.Serialization;
+
+namespace SlidingWindowRanker;
 
 internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
 {
@@ -13,7 +16,7 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
         }
         if (_partitionSize == 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(_partitionSize), "The partition size must be greater than 0.");
+            throw new ArgumentOutOfRangeException(nameof(partitionSize), "The partition size must be greater than 0.");
         }
         Values = values;
         Values.Capacity = Math.Max(Values.Capacity, _partitionSize * 2); // Leave room to grow
@@ -45,18 +48,23 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
     /// </summary>
     public bool IsFull => Values.Count == Values.Capacity;
 
-    public int CompareTo(Partition<T> other)
+    public void Dispose()
+    {
+        // Nothing to do. Disposable because of PartitionUnsafe
+        GC.SuppressFinalize(this);
+    }
+
+    public int CompareTo(IPartition<T> other)
     {
         return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
     }
 
     public void Insert(T value)
     {
-        var index = Values.LowerBound(value);
-        if (index > Values.Count)
+        var index = Values.BinarySearch(value);
+        if (index < 0)
         {
-            // avoid a crash if our LowerBound came in with count
-            index = Values.Count;
+            index = ~index;
         }
         Values.Insert(index, value);
 #if DEBUG
@@ -69,7 +77,11 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
 
     public void Remove(T value)
     {
-        var index = Values.LowerBound(value);
+        var index = Values.BinarySearch(value);
+        if (index < 0)
+        {
+            index = ~index;
+        }
         var existingValue = Values[index];
         if (existingValue.CompareTo(value) != 0)
         {
@@ -85,10 +97,14 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
     /// </summary>
     /// <param name="valueToInsert"></param>
     /// <returns>the Partition to insert AFTER this partition.</returns>
-    public Partition<T> SplitAndInsert(T valueToInsert)
+    public (IPartition<T> partition, bool isSplitIntoRightPartition) SplitAndInsert(T valueToInsert)
     {
-        var splitIndex = Values.LowerBound(valueToInsert);
-        var isSplittingAtEnd = splitIndex == Values.Count;
+        var splitIndex = Values.BinarySearch(valueToInsert);
+        if (splitIndex < 0)
+        {
+            splitIndex = ~splitIndex;
+        }
+        var isSplitIntoRightPartition = splitIndex == Values.Count;
         var rightValues = Values.GetRange(splitIndex, Values.Count - splitIndex);
         Values.RemoveRange(splitIndex, Values.Count - splitIndex);
 
@@ -101,7 +117,7 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
         // The new partition starts after this partition
         // BUT ignore the Insert below because AdjustPartitionsLowerBounds needs to do the incrementing/decrementing properly
         rightPartition.LowerBound = LowerBound + Values.Count;
-        if (isSplittingAtEnd)
+        if (isSplitIntoRightPartition)
         {
             // We must add the value into the right partition because we can't allow it to be empty
             rightPartition.Insert(valueToInsert);
@@ -110,7 +126,7 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
         {
             Insert(valueToInsert);
         }
-        return rightPartition;
+        return (rightPartition, isSplitIntoRightPartition);
     }
 
     public int GetLowerBoundWithinPartition(T value)

@@ -4,50 +4,71 @@ using SlidingWindowRanker;
 
 namespace Benchmarks;
 
-[MemoryDiagnoser]
-[ThreadingDiagnoser]
+//[MemoryDiagnoser]
+//[ThreadingDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [RankColumn]
 public class BenchmarkSlidingWindowRanker
 {
     private static string s_ValuesToRankStr;
-    private SlidingWindowRanker<double> _ranker;
-    private List<double> _valuesToRank;
+    private SlidingWindowRanker<double> _rankerSafe;
+    private SlidingWindowRankerUnsafe<double> _rankerUnsafe;
+    private List<double> _getRankValues;
 
-    [Params(1000000)]
-    public int NumberOfTestValues { get; set; }
+    [Params(100000, 1000000)]
+    public int GetRankCount { get; set; }
 
-    private int WindowSize => NumberOfTestValues / 10;
+    private int TotalTestValues => GetRankCount + WindowSize;
 
-    private int NumberOfPartitions => (int)Math.Sqrt(WindowSize);
+    [Params(1000, 10000, 100000)]
+    public int WindowSize { get; set; }
 
-    [Params(0.25, 0.75, 1.0, 1.25, 1.75, 2.0)]
-    public double MultipleOfNumberOfPartitions { get; set; }
+   
+    //[Params(0.5, 0.75, 1.0, 1.25)]
+    //public double PartitionsMultipleOfDefault { get; set; }
 
     [GlobalSetup]
     public void Setup()
     {
         var random = new Random();
-        var valuesToRank = new List<double>(NumberOfTestValues);
-        for (var i = 0; i < NumberOfTestValues; i++)
+        var valuesToRank = new List<double>(TotalTestValues);
+        for (var i = 0; i < TotalTestValues; i++)
         {
             var value = random.NextDouble() * 100;
             value = Math.Round(value, 1); // for easier debugging
             valuesToRank.Add(value);
         }
         s_ValuesToRankStr = string.Join(',', valuesToRank);
-        _valuesToRank = [..valuesToRank];
-        var initialValues = _valuesToRank.Take(WindowSize).ToList();
-        _ranker = new SlidingWindowRanker<double>(initialValues, NumberOfPartitions);
+        var initialValues = valuesToRank.Take(WindowSize).ToList();
+        _getRankValues = valuesToRank.GetRange(0, GetRankCount).ToList();
+        _rankerSafe = new SlidingWindowRanker<double>(initialValues, -1, WindowSize);
+        _rankerUnsafe = new SlidingWindowRankerUnsafe<double>(initialValues, -1, WindowSize);
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        _rankerSafe?.Dispose();
+        _rankerUnsafe?.Dispose();
     }
 
     [Benchmark]
-    public void RankValues()
+    public void RankValuesSafe()
     {
-        for (var index = WindowSize; index < NumberOfTestValues; index++)
+        for (var index = 0; index < GetRankCount; index++)
         {
-            var value = _valuesToRank[index];
-            var rank = _ranker.GetRank(value);
+            var value = _getRankValues[index];
+            var rank = _rankerSafe.GetRank(value);
+        }
+    }
+
+    [Benchmark(Baseline = true)]
+    public void RankValuesUnsafe()
+    {
+        for (var index = 0; index < GetRankCount; index++)
+        {
+            var value = _getRankValues[index];
+            var rank = _rankerSafe.GetRank(value);
         }
     }
 }
