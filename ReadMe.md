@@ -52,16 +52,22 @@ Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
   [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
   DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
 
-  | Method           | NumberOfTestValues | PartitionsMultipleOfDefault  | Mean     | Error   | StdDev  | Ratio | RatioSD | Rank | Completed Work Items | Lock Contentions | Allocated | Alloc Ratio |
-|----------------- |------------------- |----------------------------- |---------:|--------:|--------:|------:|--------:|-----:|---------------------:|-----------------:|----------:|------------:|
-| RankValuesUnsafe | 1000000            | 0.5                          | 293.5 ms | 5.36 ms | 5.02 ms |  1.00 |    0.02 |    1 |                    - |                - |     200 B |        1.00 |
-| RankValuesSafe   | 1000000            | 0.5                          | 295.4 ms | 5.00 ms | 6.33 ms |  1.01 |    0.03 |    1 |                    - |                - |     200 B |        1.00 |
-|                  |                    |                              |          |         |         |       |         |      |                      |                  |           |             |
-| RankValuesUnsafe | 1000000            | 0.75                         | 285.1 ms | 1.53 ms | 1.36 ms |  1.00 |    0.01 |    1 |                    - |                - |     200 B |        1.00 |
-| RankValuesSafe   | 1000000            | 0.75                         | 301.8 ms | 3.33 ms | 3.11 ms |  1.06 |    0.01 |    2 |                    - |                - |     200 B |        1.00 |
-|                  |                    |                              |          |         |         |       |         |      |                      |                  |           |             |
-| RankValuesUnsafe | 1000000            | 1                            | 293.3 ms | 5.84 ms | 5.73 ms |  1.00 |    0.03 |    1 |                    - |                - |     200 B |        1.00 |
-| RankValuesSafe   | 1000000            | 1                            | 314.7 ms | 4.27 ms | 3.78 ms |  1.07 |    0.02 |    2 |                    - |                - |     200 B |        1.00 |
-|                  |                    |                              |          |         |         |       |         |      |                      |                  |           |             |
-| RankValuesUnsafe | 1000000            | 1.25                         | 311.2 ms | 5.00 ms | 4.43 ms |  1.00 |    0.02 |    1 |                    - |                - |     200 B |        1.00 |
-| RankValuesSafe   | 1000000            | 1.25                         | 327.2 ms | 3.10 ms | 2.75 ms |  1.05 |    0.02 |    2 |                    - |                - |     200 B |        1.00 |
+| Method           | GetRankCount | WindowSize | Mean      | Error    | StdDev    | Ratio | RatioSD | Rank |
+|----------------- |------------- |----------- |----------:|---------:|----------:|------:|--------:|-----:|
+| RankValuesSafe   | 100000       | 1000       |  22.55 ms | 0.217 ms |  0.169 ms |  0.99 |    0.02 |    1 |
+| RankValuesUnsafe | 100000       | 1000       |  22.89 ms | 0.445 ms |  0.477 ms |  1.00 |    0.03 |    1 |
+|                  |              |            |           |          |           |       |         |      |
+| RankValuesSafe   | 100000       | 10000      |  26.89 ms | 0.524 ms |  0.514 ms |  0.98 |    0.03 |    1 |
+| RankValuesUnsafe | 100000       | 10000      |  27.43 ms | 0.548 ms |  0.652 ms |  1.00 |    0.03 |    1 |
+|                  |              |            |           |          |           |       |         |      |
+| RankValuesUnsafe | 100000       | 100000     |  25.59 ms | 0.510 ms |  0.664 ms |  1.00 |    0.04 |    1 |
+| RankValuesSafe   | 100000       | 100000     |  25.75 ms | 0.510 ms |  0.824 ms |  1.01 |    0.04 |    1 |
+|                  |              |            |           |          |           |       |         |      |
+| RankValuesSafe   | 1000000      | 1000       | 224.04 ms | 2.412 ms |  2.256 ms |  1.00 |    0.02 |    1 |
+| RankValuesUnsafe | 1000000      | 1000       | 224.94 ms | 3.207 ms |  3.000 ms |  1.00 |    0.02 |    1 |
+|                  |              |            |           |          |           |       |         |      |
+| RankValuesSafe   | 1000000      | 10000      | 267.47 ms | 4.743 ms |  4.437 ms |  1.00 |    0.02 |    1 |
+| RankValuesUnsafe | 1000000      | 10000      | 268.81 ms | 3.059 ms |  2.555 ms |  1.00 |    0.01 |    1 |
+|                  |              |            |           |          |           |       |         |      |
+| RankValuesSafe   | 1000000      | 100000     | 420.95 ms | 8.287 ms | 11.618 ms |  0.99 |    0.04 |    1 |
+| RankValuesUnsafe | 1000000      | 100000     | 426.24 ms | 8.475 ms | 11.881 ms |  1.00 |    0.04 |    1 |                - |                - |     200 B |        1.00 |
