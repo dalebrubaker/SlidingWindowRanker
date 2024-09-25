@@ -52,22 +52,15 @@ Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
   [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
   DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
 
-| Method           | GetRankCount | WindowSize | Mean      | Error    | StdDev    | Ratio | RatioSD | Rank |
-|----------------- |------------- |----------- |----------:|---------:|----------:|------:|--------:|-----:|
-| RankValuesSafe   | 100000       | 1000       |  22.55 ms | 0.217 ms |  0.169 ms |  0.99 |    0.02 |    1 |
-| RankValuesUnsafe | 100000       | 1000       |  22.89 ms | 0.445 ms |  0.477 ms |  1.00 |    0.03 |    1 |
-|                  |              |            |           |          |           |       |         |      |
-| RankValuesSafe   | 100000       | 10000      |  26.89 ms | 0.524 ms |  0.514 ms |  0.98 |    0.03 |    1 |
-| RankValuesUnsafe | 100000       | 10000      |  27.43 ms | 0.548 ms |  0.652 ms |  1.00 |    0.03 |    1 |
-|                  |              |            |           |          |           |       |         |      |
-| RankValuesUnsafe | 100000       | 100000     |  25.59 ms | 0.510 ms |  0.664 ms |  1.00 |    0.04 |    1 |
-| RankValuesSafe   | 100000       | 100000     |  25.75 ms | 0.510 ms |  0.824 ms |  1.01 |    0.04 |    1 |
-|                  |              |            |           |          |           |       |         |      |
-| RankValuesSafe   | 1000000      | 1000       | 224.04 ms | 2.412 ms |  2.256 ms |  1.00 |    0.02 |    1 |
-| RankValuesUnsafe | 1000000      | 1000       | 224.94 ms | 3.207 ms |  3.000 ms |  1.00 |    0.02 |    1 |
-|                  |              |            |           |          |           |       |         |      |
-| RankValuesSafe   | 1000000      | 10000      | 267.47 ms | 4.743 ms |  4.437 ms |  1.00 |    0.02 |    1 |
-| RankValuesUnsafe | 1000000      | 10000      | 268.81 ms | 3.059 ms |  2.555 ms |  1.00 |    0.01 |    1 |
-|                  |              |            |           |          |           |       |         |      |
-| RankValuesSafe   | 1000000      | 100000     | 420.95 ms | 8.287 ms | 11.618 ms |  0.99 |    0.04 |    1 |
-| RankValuesUnsafe | 1000000      | 100000     | 426.24 ms | 8.475 ms | 11.881 ms |  1.00 |    0.04 |    1 |                - |                - |     200 B |        1.00 |
+| Method      | GetRankCount | WindowSize | Mean      | Error     | StdDev    | Rank |
+|-------------|------------- |----------- |----------:|----------:|----------:|-----:|
+| RankValues  | 100000       | 1000       |  29.07 ms |  0.553 ms |  0.517 ms |    1 |
+| RankValues  | 100000       | 100000     |  29.68 ms |  0.210 ms |  0.186 ms |    1 |
+| RankValues  | 100000       | 10000      |  33.19 ms |  0.651 ms |  0.974 ms |    2 |
+| RankValues  | 1000000      | 1000       | 268.05 ms |  5.330 ms | 14.499 ms |    3 |
+| RankValues  | 1000000      | 10000      | 334.30 ms |  4.836 ms |  4.287 ms |    4 |
+| RankValues  | 1000000      | 100000     | 508.73 ms | 10.088 ms | 18.192 ms |    5 |
+
+GetRankCount is the number of times GetRank is called in the benchmark.
+WindowSize is the size of the window in the benchmark, i.e., the number of values against which each new value is ranked.
+The number of partitions K defaults to the square root of the window size (which is usually close to optimal) but can be specified if desired.

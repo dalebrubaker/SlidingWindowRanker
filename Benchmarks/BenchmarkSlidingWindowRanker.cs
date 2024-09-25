@@ -50,17 +50,7 @@ public class BenchmarkSlidingWindowRanker
     }
 
     [Benchmark]
-    public void RankValuesSafe()
-    {
-        for (var index = 0; index < GetRankCount; index++)
-        {
-            var value = _getRankValues[index];
-            var rank = _ranker.GetRank(value);
-        }
-    }
-
-    [Benchmark(Baseline = true)]
-    public void RankValuesUnsafe()
+    public void RankValues()
     {
         for (var index = 0; index < GetRankCount; index++)
         {

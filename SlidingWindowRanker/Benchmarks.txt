@@ -652,3 +652,14 @@ Switched to using SafeHandle. Not significantly slower
 |                  |              |            |           |          |          |       |         |      |
 | RankValuesUnsafe | 1000000      | 100000     | 357.50 ms | 5.142 ms | 4.558 ms |  1.00 |    0.02 |    1 |
 | RankValuesSafe   | 1000000      | 100000     | 359.20 ms | 3.665 ms | 3.428 ms |  1.00 |    0.02 |    1 |
+
+20240925 Removed all Unsafe stuff, not worth it
+
+| Method         | GetRankCount | WindowSize | Mean      | Error     | StdDev    | Rank |
+|--------------- |------------- |----------- |----------:|----------:|----------:|-----:|
+| RankValuesSafe | 100000       | 1000       |  29.07 ms |  0.553 ms |  0.517 ms |    1 |
+| RankValuesSafe | 100000       | 100000     |  29.68 ms |  0.210 ms |  0.186 ms |    1 |
+| RankValuesSafe | 100000       | 10000      |  33.19 ms |  0.651 ms |  0.974 ms |    2 |
+| RankValuesSafe | 1000000      | 1000       | 268.05 ms |  5.330 ms | 14.499 ms |    3 |
+| RankValuesSafe | 1000000      | 10000      | 334.30 ms |  4.836 ms |  4.287 ms |    4 |
+| RankValuesSafe | 1000000      | 100000     | 508.73 ms | 10.088 ms | 18.192 ms |    5 |
