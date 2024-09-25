@@ -31,8 +31,6 @@ public interface IPartition<T> : IDisposable where T : IComparable<T>
 
     List<T> Values { get; }
 
-    int CompareTo(IPartition<T> other);
-
     void Insert(T value);
 
     void Remove(T value);

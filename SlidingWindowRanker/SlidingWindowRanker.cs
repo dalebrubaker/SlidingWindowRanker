@@ -63,6 +63,7 @@ public class SlidingWindowRanker<T> : SlidingWindowRankerBase<T> where T : IComp
             // should have values per partition of [2, 2, 1] not [1, 1, 1]
             partitionSize = (_windowSize + 1) / partitionCount;
         }
+        var partitions = new List<Partition<T>>(partitionCount);
         for (var i = 0; i < partitionCount; i++)
         {
             var startIndex = i * partitionSize;
@@ -74,7 +75,8 @@ public class SlidingWindowRanker<T> : SlidingWindowRankerBase<T> where T : IComp
             {
                 LowerBound = startIndex
             };
-            _partitions.Add(partition);
+            partitions.Add(partition);
         }
+        SortedPartitions.Partitions = partitions.Cast<IPartition<T>>().ToList();
     }
 }

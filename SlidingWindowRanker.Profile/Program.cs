@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using SlidingWindowRanker;
 
-
 const int NumberOfTestValues = 1000000;
 const int WindowSize = NumberOfTestValues / 10;
 //const int NumberOfPartitions = -1; // use Sqrt(WindowSize) as default
@@ -17,8 +16,8 @@ var valuesToRankStr = string.Join(',', valuesToRank);
 var indexToSplit = NumberOfTestValues - WindowSize;
 var initialValues = valuesToRank.GetRange(indexToSplit, WindowSize);
 valuesToRank.RemoveRange(indexToSplit, WindowSize);
-//using var ranker = new SlidingWindowRanker<double>(initialValues);
-using var ranker = new SlidingWindowRankerUnsafe<double>(initialValues);
+using var ranker = new SlidingWindowRanker<double>(initialValues);
+//using var ranker = new SlidingWindowRankerUnsafe<double>(initialValues);
 Console.WriteLine("Ready to start ranking values...");
 Console.WriteLine("Press any key to start...");
 Console.ReadKey();

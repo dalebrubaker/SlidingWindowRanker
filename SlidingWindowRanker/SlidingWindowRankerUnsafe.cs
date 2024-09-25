@@ -6,6 +6,8 @@
 /// <typeparam name="T"></typeparam>
 public class SlidingWindowRankerUnsafe<T> : SlidingWindowRankerBase<T> where T : unmanaged, IComparable<T>
 {
+    private List<IPartition<T>> _partitions = new();
+
     /// <summary>
     /// Initializes a new instance of the SlidingWindowRankerUnsafe class.
     /// </summary>
@@ -63,6 +65,7 @@ public class SlidingWindowRankerUnsafe<T> : SlidingWindowRankerBase<T> where T :
             // should have values per partition of [2, 2, 1] not [1, 1, 1]
             partitionSize = (_windowSize + 1) / partitionCount;
         }
+        var partitions = new List<PartitionUnsafe<T>>(partitionCount);
         for (var i = 0; i < partitionCount; i++)
         {
             var startIndex = i * partitionSize;
@@ -74,7 +77,8 @@ public class SlidingWindowRankerUnsafe<T> : SlidingWindowRankerBase<T> where T :
             {
                 LowerBound = startIndex
             };
-            _partitions.Add(partition);
+            partitions.Add(partition);
         }
+        SortedPartitions.Partitions = partitions.Cast<IPartition<T>>().ToList();
     }
 }
