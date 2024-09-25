@@ -8,11 +8,10 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
     private readonly int _capacityLeft;
     private readonly int _capacityRight;
     private readonly int _partitionSize;
-    private GCHandle _bufferHandle;
-    private T* _bufferPtr;
-    private bool _disposed;
+    private readonly T* _bufferPtr;
     private int _left;
     private int _right;
+    private readonly SafeUnmanagedMemoryHandle _safeHandle;
 
     public PartitionUnsafe(List<T> values, int partitionSize = -1)
     {
@@ -22,6 +21,9 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
             throw new ArgumentOutOfRangeException(nameof(partitionSize), "The partition size must be greater than 0.");
         }
         _capacity = _partitionSize * 2; // Leave room to grow
+        _safeHandle = new SafeUnmanagedMemoryHandle(_capacity * sizeof(T));
+        _bufferPtr = (T*)_safeHandle.DangerousGetHandle();
+
         _capacityLeft = 0;
         _capacityRight = _capacity - 1;
 
@@ -30,33 +32,10 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
         var count = values.Count;
         _left = middle - count / 2;
         _right = _left + count - 1;
-
-        _bufferPtr = (T*)Marshal.AllocHGlobal(_capacity * sizeof(T));
-        if (_bufferPtr == null)
-        {
-            throw new OutOfMemoryException("Failed to allocate memory for partition.");
-        }
         if (count > 0)
         {
             LoadInitialValuesIntoBuffer(values, count);
         }
-    }
-
-    private void LoadInitialValuesIntoBuffer(List<T> values, int count)
-    {
-        // Pin the values array
-        var valuesHandle = GCHandle.Alloc(values.ToArray(), GCHandleType.Pinned);
-        var valuesArrayPtr = (T*)valuesHandle.AddrOfPinnedObject();
-        if (valuesArrayPtr == null)
-        {
-            throw new InvalidOperationException("Failed to get pointer to values.");
-        }
-        for (var i = 0; i < count; i++)
-        {
-            var bufferIndex = _left + i;
-            *(_bufferPtr + bufferIndex) = *(valuesArrayPtr + i);
-        }
-        valuesHandle.Free();
     }
 
     public List<string> BufferValues
@@ -84,19 +63,7 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
 
     public void Dispose()
     {
-        if (!_disposed)
-        {
-            if (_bufferPtr != null)
-            {
-                Marshal.FreeHGlobal((IntPtr)_bufferPtr);
-                _bufferPtr = null; // Avoid dangling pointer
-            }
-            if (_bufferHandle.IsAllocated)
-            {
-                _bufferHandle.Free();
-            }
-            _disposed = true;
-        }
+        _safeHandle.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -132,7 +99,7 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
         // Shift existing values to the right or to the left, whichever is fewer, then insert the new value
         var distanceToLeft = indexIntoBuffer - _left;
         var distanceToRight = _right - indexIntoBuffer;
-        bool moveRight; 
+        bool moveRight;
         if (distanceToRight == distanceToLeft)
         {
             // Shift where we have more room in the buffer
@@ -154,24 +121,6 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
             ShiftValuesToLeftFromInsertionPoint(indexIntoBuffer);
             *(_bufferPtr + indexIntoBuffer - 1) = value;
         }
-    }
-
-    private void ShiftValuesToRightFromInsertionPoint(int indexIntoBuffer)
-    {
-        for (var i = _right; i >= indexIntoBuffer; i--)
-        {
-            *(_bufferPtr + i + 1) = *(_bufferPtr + i);
-        }
-        _right++;
-    }
-
-    private void ShiftValuesToLeftFromInsertionPoint(int indexIntoBuffer)
-    {
-        for (var i = _left; i < indexIntoBuffer; i++)
-        {
-            *(_bufferPtr + i - 1) = *(_bufferPtr + i);
-        }
-        _left--;
     }
 
     public void Remove(T value)
@@ -230,7 +179,7 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
             var countToShift = newLeft - _left;
 
             // Shift values from _left to newLeft
-            for (int i = _right; i >= _left; i--)
+            for (var i = _right; i >= _left; i--)
             {
                 *(_bufferPtr + i + countToShift) = *(_bufferPtr + i);
             }
@@ -288,6 +237,41 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
         }
     }
 
+    private void LoadInitialValuesIntoBuffer(List<T> values, int count)
+    {
+        // Pin the values array
+        var valuesHandle = GCHandle.Alloc(values.ToArray(), GCHandleType.Pinned);
+        var valuesArrayPtr = (T*)valuesHandle.AddrOfPinnedObject();
+        if (valuesArrayPtr == null)
+        {
+            throw new InvalidOperationException("Failed to get pointer to values.");
+        }
+        for (var i = 0; i < count; i++)
+        {
+            var bufferIndex = _left + i;
+            *(_bufferPtr + bufferIndex) = *(valuesArrayPtr + i);
+        }
+        valuesHandle.Free();
+    }
+
+    private void ShiftValuesToRightFromInsertionPoint(int indexIntoBuffer)
+    {
+        for (var i = _right; i >= indexIntoBuffer; i--)
+        {
+            *(_bufferPtr + i + 1) = *(_bufferPtr + i);
+        }
+        _right++;
+    }
+
+    private void ShiftValuesToLeftFromInsertionPoint(int indexIntoBuffer)
+    {
+        for (var i = _left; i < indexIntoBuffer; i++)
+        {
+            *(_bufferPtr + i - 1) = *(_bufferPtr + i);
+        }
+        _left--;
+    }
+
     private List<T> GetRange(int indexIntoBuffer, int count)
     {
         var result = new List<T>(count);
@@ -296,10 +280,5 @@ internal unsafe partial class PartitionUnsafe<T> : IPartition<T> where T : unman
             result.Add(*(_bufferPtr + indexIntoBuffer + i));
         }
         return result;
-    }
-
-    ~PartitionUnsafe()
-    {
-        Dispose();
     }
 }
