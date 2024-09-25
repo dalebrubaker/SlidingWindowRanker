@@ -3,7 +3,6 @@ using SlidingWindowRanker;
 
 const int NumberOfTestValues = 1000000;
 const int WindowSize = NumberOfTestValues / 10;
-const int NumberOfPartitions = -1; // use Sqrt(WindowSize) as default
 var valuesToRank = new List<double>(NumberOfTestValues);
 for (var i = 0; i < NumberOfTestValues; i++)
 {
