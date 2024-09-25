@@ -18,7 +18,6 @@ and more.
   normally defined as LESS THAN OR EQUAL rather than LESS THAN. So, the values returned will be in the range ([0, 1] NOT
   inclusive of 1) rather than [0, 1] inclusive.
 - The fraction returned can be multiplied by 10 to get a decile rank or by 100 to get a percentile rank.
-- An alternative version called SlidingWindowRankerUnsafe is available that is significantly faster. It is unsafe only in the sense that it uses pointers like C or C++ programs. You should call Dispose() on this version of the ranker to do a better job of disposing of unmanaged memory. This version may use more memory because a significant speed advantage is that it inserts and removes to the smallest side of the window.
 
 ## Usage
 
@@ -28,9 +27,6 @@ Here's a simple example of how to use Sliding Window Ranker:
 var ranker = new SlidingWindowRanker<double>(initialValues);
 var rank = ranker.GetRank(value);
 
-// or
-using var ranker = new SlidingWindowRankerUnsafe<double>(initialValues);
-var rank = ranker.GetRank(value);
 
 
 ```

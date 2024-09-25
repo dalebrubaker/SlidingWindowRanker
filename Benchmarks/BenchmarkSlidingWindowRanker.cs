@@ -11,8 +11,7 @@ namespace Benchmarks;
 public class BenchmarkSlidingWindowRanker
 {
     private static string s_ValuesToRankStr;
-    private SlidingWindowRanker<double> _rankerSafe;
-    private SlidingWindowRankerUnsafe<double> _rankerUnsafe;
+    private SlidingWindowRanker<double> _ranker;
     private List<double> _getRankValues;
 
     [Params(100000, 1000000)]
@@ -41,15 +40,13 @@ public class BenchmarkSlidingWindowRanker
         s_ValuesToRankStr = string.Join(',', valuesToRank);
         var initialValues = valuesToRank.Take(WindowSize).ToList();
         _getRankValues = valuesToRank.GetRange(0, GetRankCount).ToList();
-        _rankerSafe = new SlidingWindowRanker<double>(initialValues, -1, WindowSize);
-        _rankerUnsafe = new SlidingWindowRankerUnsafe<double>(initialValues, -1, WindowSize);
+        _ranker = new SlidingWindowRanker<double>(initialValues, -1, WindowSize);
     }
 
     [GlobalCleanup]
     public void Cleanup()
     {
-        _rankerSafe?.Dispose();
-        _rankerUnsafe?.Dispose();
+        _ranker?.Dispose();
     }
 
     [Benchmark]
@@ -58,7 +55,7 @@ public class BenchmarkSlidingWindowRanker
         for (var index = 0; index < GetRankCount; index++)
         {
             var value = _getRankValues[index];
-            var rank = _rankerSafe.GetRank(value);
+            var rank = _ranker.GetRank(value);
         }
     }
 
@@ -68,7 +65,7 @@ public class BenchmarkSlidingWindowRanker
         for (var index = 0; index < GetRankCount; index++)
         {
             var value = _getRankValues[index];
-            var rank = _rankerSafe.GetRank(value);
+            var rank = _ranker.GetRank(value);
         }
     }
 }

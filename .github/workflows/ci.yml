@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ master, UnsafePartition ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, UnsafePartition ]
+    branches: [ master ]
 
 jobs:
   build:
