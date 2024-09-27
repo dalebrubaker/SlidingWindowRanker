@@ -233,19 +233,19 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         {
             for (var i = beginIncrementsIndex; i < beginDecrementsIndex; i++)
             {
-                var partition = _partitions[i];
-                partition.LowerBound++;
+                _partitions[i].LowerBound++;
             }
         }
         else
         {
             for (var i = beginDecrementsIndex; i < beginIncrementsIndex; i++)
             {
-                var partition = _partitions[i];
-                partition.LowerBound--;
+                _partitions[i].LowerBound--;
             }
         }
+#if DEBUG
         DebugGuardPartitionLowerBoundValuesAreCorrect();
+#endif
     }
 
     /// <summary>
@@ -256,7 +256,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="valueToInsert">The value to insert.</param>
     /// <param name="partitionForInsert"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DoInsert(T valueToInsert, Partition<T> partitionForInsert)
+    private static void DoInsert(T valueToInsert, Partition<T> partitionForInsert)
     {
         Debug.Assert(!partitionForInsert.IsFull, "Must have been split before we get here");
         partitionForInsert.Insert(valueToInsert);
@@ -273,7 +273,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="partitionForRemove"></param>
     /// <returns>The index of the partition where the value was removed, or -1 if no value was removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DoRemove(T valueToRemove, Partition<T> partitionForRemove)
+    private static void DoRemove(T valueToRemove, Partition<T> partitionForRemove)
     {
         Debug.Assert(partitionForRemove.Count > 1, "Partition should have been removed before we get here");
 #if DEBUG
