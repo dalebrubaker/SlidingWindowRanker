@@ -14,16 +14,16 @@ public class BenchmarkSlidingWindowRanker
     private List<double> _getRankValues;
     private SlidingWindowRanker<double> _ranker;
 
-    [Params(1000000)]
+    [Params(100000, 1000000)]
     public int GetRankCount { get; set; }
 
     private int TotalTestValues => GetRankCount + WindowSize;
 
-    [Params(10000, 100000)]
+    [Params(1000, 10000, 100000)]
     public int WindowSize { get; set; }
 
-    //[Params(0.5, 0.75, 1.0, 1.25)]
-    //public double PartitionsMultipleOfDefault { get; set; }
+    // [Params(0.75, 1.0, 1.25)]
+    public double PartitionsMultipleOfDefault { get; set; } = 1.0;
 
     [GlobalSetup]
     public void Setup()
@@ -39,7 +39,8 @@ public class BenchmarkSlidingWindowRanker
         s_ValuesToRankStr = string.Join(',', valuesToRank);
         var initialValues = valuesToRank.Take(WindowSize).ToList();
         _getRankValues = valuesToRank.GetRange(0, GetRankCount).ToList();
-        _ranker = new SlidingWindowRanker<double>(initialValues, -1, WindowSize);
+        var partitionCount = (int)Math.Sqrt(WindowSize * PartitionsMultipleOfDefault);
+        _ranker = new SlidingWindowRanker<double>(initialValues, partitionCount, WindowSize);
     }
 
     [GlobalCleanup]

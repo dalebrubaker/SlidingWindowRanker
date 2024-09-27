@@ -207,7 +207,7 @@ public class SlidingWindowRankerTests
         for (var index = WindowSize; index < valuesToRank.Count; index++)
         {
             var value = valuesToRank[index];
-            if (index == 60)
+            if (index == 10)
             {
             }
             var rank = ranker.GetRank(value);
@@ -236,5 +236,31 @@ public class SlidingWindowRankerTests
         ranker.TestValues.Should().BeEquivalentTo(new[] { int.MinValue, 2, 3, 4, 5 });
 
         rank.Should().Be(0.0);
+    }
+
+    [Fact]
+    public void GetRank_ShouldWorkWithMaxValueWindowSize()
+    {
+        // Initial values copied from the benchmark
+        const int WindowSize = int.MaxValue;
+        var initialValuesStr =
+            "74.4,43.6,58.6,16.5,52.9,72.6,63.9,0.9,54.6,99.1,28.8,55,34.2,1.6,55,36.4,32.9,46.9,60.5,4.8,30.1,63,72.2,88.7,72.8,52,49.3,90.8,39.9,11.9,65.9,7.3,49.4,20.2,4.8,19.3,66.1,83.7,45.5,32.4,37.7,89.9,59.9,84.6,4.7,30.5,89.9,97.3,92.2,59.4,63.8,51.5,42.8,86.5,58.6,6.3,13,41.7,71.3,11.5,57.9,79.1,64.3,77.2,47.6,36.8,35.7,80.6,12.8,68,83.4,18.8,28,29,88.7,44.4,44.8,58.1,83.1,44.2,72.1,11.7,60.3,20.5,35.3,47.8,80.6,31,33.9,25.8,89.5,49.5,44,11.4,86.8,18.1,18.5,41.5,39.6,31.7";
+
+        var valuesToRank = initialValuesStr.Split(',').Select(double.Parse).ToList();
+        var indexToSplit = valuesToRank.Count * 9 / 10;
+        var initialValues = valuesToRank.GetRange(indexToSplit, valuesToRank.Count - indexToSplit).ToList();
+        valuesToRank.RemoveRange(indexToSplit, valuesToRank.Count - indexToSplit);
+        var ranker = new SlidingWindowRanker<double>(initialValues, windowSize: WindowSize);
+        for (var index = initialValues.Count; index < valuesToRank.Count; index++)
+        {
+            var value = valuesToRank[index];
+            if (index == 60)
+            {
+            }
+            var rank = ranker.GetRank(value);
+        }
+
+        // This test is just to make sure that the test runs without exceptions
+        Assert.True(true);
     }
 }

@@ -22,7 +22,7 @@ public class SlidingWindowRankerLowLevelTests
         var initialValues = new List<int> { 1, 2, 3, 4, 5 };
         var ranker = new SlidingWindowRanker<int>(initialValues, 5);
         ranker.TestPartitions.Count.Should().Be(5);
-        var partition1 = ranker.TestPartitions[1] as Partition<int>;
+        var partition1 = ranker.TestPartitions[1];
         partition1.Test_PartitionSize.Should().Be(1);
         partition1.Test_LowerBound.Should().Be(1);
 
@@ -42,7 +42,7 @@ public class SlidingWindowRankerLowLevelTests
         var initialValues = new List<int> { 1, 2, 3, 4, 5 };
         var ranker = new SlidingWindowRanker<int>(initialValues, 3);
         ranker.TestPartitions.Count.Should().Be(3);
-        var partition1 = ranker.TestPartitions[1] as Partition<int>;
+        var partition1 = ranker.TestPartitions[1];
         partition1.Test_PartitionSize.Should().Be(2);
         partition1.Test_LowerBound.Should().Be(2);
 
@@ -120,16 +120,20 @@ public class SlidingWindowRankerLowLevelTests
         var initialValues = new List<int> { 1, 2, 4 };
         var ranker = new SlidingWindowRanker<int>(initialValues, 3);
         ranker.TestPartitions.Count.Should().Be(3);
-        var partition0 = ranker.TestPartitions[0] as Partition<int>;
+        var partition0 = ranker.TestPartitions[0];
         partition0.Test_PartitionSize.Should().Be(1);
-        partition0.Test_PartitionCapacity.Should().Be(2);
+        partition0.Test_PartitionCapacity.Should().Be(2, "The partition capacity is double the partition size");
 
         // Act
         ranker.Test_DoInsert(3);
         ranker.Test_DoInsert(3);
+        ranker.Test_DoInsert(3);
+        ranker.Test_DoInsert(3);
+        ranker.Test_DoInsert(3);
+        ranker.Test_DoInsert(3);
 
         // Assert
-        ranker.CountPartitionSplits.Should().Be(1);
-        ranker.TestValues.Should().BeEquivalentTo(new[] { 1, 2, 3, 3, 4 });
+        ranker.CountPartitionSplits.Should().Be(3);
+        ranker.TestValues.Should().BeEquivalentTo(new[] { 1, 2, 3, 3, 3, 3, 3, 3, 4 });
     }
 }

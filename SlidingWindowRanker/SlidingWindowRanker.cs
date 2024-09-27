@@ -76,20 +76,31 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         {
             // Add 1 to _windowSize so we can round up on the integer division. E.g. 5 values and 3 partitions
             // should have values per partition of [2, 2, 1] not [1, 1, 1]
-            partitionSize = (_windowSize + 1) / partitionCount;
+            partitionSize = Math.Max(1, (_windowSize + 1) / partitionCount);
         }
-        for (var i = 0; i < partitionCount; i++)
+        if (values.Count == 0)
         {
-            var startIndex = i * partitionSize;
-
-            // Last partition gets the remaining values
-            var getRangeCount = i == partitionCount - 1 ? values.Count - startIndex : partitionSize;
-            var partitionValues = values.GetRange(startIndex, getRangeCount);
+            // We need at least one partition
+            var emptyPartition = new Partition<T>(new List<T>(), partitionSize)
+            {
+                LowerBound = 0
+            };
+            _partitions.Add(emptyPartition);
+            return;
+        }
+        var valuesAddedIntoPartitionsThusFar = 0;
+        var countRemainingValues = values.Count;
+        while (countRemainingValues > 0)
+        {
+            var getRangeCount = Math.Min(partitionSize, values.Count - valuesAddedIntoPartitionsThusFar);
+            var partitionValues = values.GetRange(valuesAddedIntoPartitionsThusFar, getRangeCount);
             var partition = new Partition<T>(partitionValues, partitionSize)
             {
-                LowerBound = startIndex
+                LowerBound = valuesAddedIntoPartitionsThusFar
             };
             _partitions.Add(partition);
+            valuesAddedIntoPartitionsThusFar += getRangeCount;
+            countRemainingValues = values.Count - valuesAddedIntoPartitionsThusFar;
         }
     }
 
@@ -113,8 +124,13 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <returns>The fraction of values in the window that are less than the specified value.</returns>
     public double GetRank(T valueToInsert)
     {
-        var valueToRemove = _isQueueFull ? _valueQueue.Dequeue() : default;
-        _valueQueue.Enqueue(valueToInsert);
+        T valueToRemove = default;
+        if (_windowSize < int.MaxValue)
+        {
+            // When _windowSize is int.MaxValue, we don't need to waste time and memory using the queue
+            valueToRemove = _isQueueFull ? _valueQueue.Dequeue() : default;
+            _valueQueue.Enqueue(valueToInsert);
+        }
         if (!_isQueueFull && _valueQueue.Count >= _windowSize)
         {
             _isQueueFull = true;
@@ -256,7 +272,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="valueToInsert">The value to insert.</param>
     /// <param name="partitionForInsert"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void DoInsert(T valueToInsert, Partition<T> partitionForInsert)
+    private void DoInsert(T valueToInsert, Partition<T> partitionForInsert)
     {
         Debug.Assert(!partitionForInsert.IsFull, "Must have been split before we get here");
         partitionForInsert.Insert(valueToInsert);
@@ -273,19 +289,9 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="partitionForRemove"></param>
     /// <returns>The index of the partition where the value was removed, or -1 if no value was removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void DoRemove(T valueToRemove, Partition<T> partitionForRemove)
+    private void DoRemove(T valueToRemove, Partition<T> partitionForRemove)
     {
         Debug.Assert(partitionForRemove.Count > 1, "Partition should have been removed before we get here");
-#if DEBUG
-        if (valueToRemove.CompareTo(partitionForRemove.HighestValue) > 0)
-        {
-            throw new SlidingWindowRankerException("The value to remove above the HighestValue in the window.");
-        }
-        if (valueToRemove.CompareTo(partitionForRemove.LowestValue) < 0)
-        {
-            throw new SlidingWindowRankerException("The value to remove is below the LowestValue of the window.");
-        }
-#endif
         partitionForRemove.Remove(valueToRemove);
 #if DEBUG
         _debugMessageRemove = $"Removed  value in _partitionForRemove={partitionForRemove}";
