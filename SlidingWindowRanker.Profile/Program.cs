@@ -23,7 +23,6 @@ Console.WriteLine("Press any key to start...");
 Console.ReadKey();
 var stopwatch = Stopwatch.StartNew();
 var counter = 0;
-var sum = 0.0;
 for (var i = indexToSplit - 1; i >= 0; i--)
 {
     var value = valuesToRank[i];
@@ -32,11 +31,10 @@ for (var i = indexToSplit - 1; i >= 0; i--)
     }
     var rank = ranker.GetRank(value);
     counter++;
-    sum += rank;
 }
 var elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
 var countSplits = ranker.CountPartitionSplits;
 var countRemovePartitions = ranker.CountPartitionRemoves;
-Console.WriteLine($"Done in {elapsedMilliseconds} ms. #ranks={counter:N0} sum={sum} "
+Console.WriteLine($"Done in {elapsedMilliseconds} ms. #ranks={counter:N0} "
                   + $"countRemovePartitions={countRemovePartitions:N0} countSplits={countSplits:N0} Press any key to exit.");
-//Console.ReadKey();
+Console.ReadKey();
