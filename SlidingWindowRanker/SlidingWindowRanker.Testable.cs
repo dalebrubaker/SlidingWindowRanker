@@ -14,7 +14,7 @@ namespace SlidingWindowRanker;
 /// <typeparam name="T"></typeparam>
 public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
-    internal List<IPartition<T>> TestPartitions => _partitions;
+    internal List<Partition<T>> TestPartitions => _partitions;
     internal List<T> TestValues => _partitions.SelectMany(p => p.Values).ToList();
 
     internal void Test_DoInsert(T valueToInsert)

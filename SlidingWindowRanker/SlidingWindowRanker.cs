@@ -4,7 +4,7 @@ namespace SlidingWindowRanker;
 
 public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
-    private readonly List<IPartition<T>> _partitions = [];
+    private readonly List<Partition<T>> _partitions = [];
 
     /// <summary>
     /// The queue of all values so we know which one to remove at the left edge of the window.
@@ -194,7 +194,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         return partitionIndexForInsert + 1;
     }
 
-    private bool SplitPartition(IPartition<T> partitionForInsert, int partitionIndexForInsert, T valueToInsert)
+    private bool SplitPartition(Partition<T> partitionForInsert, int partitionIndexForInsert, T valueToInsert)
     {
         CountPartitionSplits++;
         var (rightPartition, isSplitIntoRightPartition) = partitionForInsert.SplitAndInsert(valueToInsert);
@@ -205,7 +205,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         return isSplitIntoRightPartition;
     }
 
-    private void RemovePartition(int partitionIndexForRemove, IPartition<T> partitionForRemove)
+    private void RemovePartition(int partitionIndexForRemove, Partition<T> partitionForRemove)
     {
         _partitions.RemoveAt(partitionIndexForRemove);
 #if DEBUG
@@ -249,7 +249,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// </summary>
     /// <param name="valueToInsert">The value to insert.</param>
     /// <param name="partitionForInsert"></param>
-    private void DoInsert(T valueToInsert, IPartition<T> partitionForInsert)
+    private void DoInsert(T valueToInsert, Partition<T> partitionForInsert)
     {
         Debug.Assert(!partitionForInsert.IsFull, "Must have been split before we get here");
         partitionForInsert.Insert(valueToInsert);
@@ -265,7 +265,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="valueToRemove">The value to remove.</param>
     /// <param name="partitionForRemove"></param>
     /// <returns>The index of the partition where the value was removed, or -1 if no value was removed.</returns>
-    private void DoRemove(T valueToRemove, IPartition<T> partitionForRemove)
+    private void DoRemove(T valueToRemove, Partition<T> partitionForRemove)
     {
         Debug.Assert(partitionForRemove.Count > 1, "Partition should have been removed before we get here");
 #if DEBUG

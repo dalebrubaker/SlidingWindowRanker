@@ -1,6 +1,6 @@
 ﻿namespace SlidingWindowRanker;
 
-internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
+internal partial class Partition<T> where T : IComparable<T>
 {
     private readonly int _partitionSize;
 
@@ -17,11 +17,6 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
         }
         Values = values;
         Values.Capacity = Math.Max(Values.Capacity, _partitionSize * 2); // Leave room to grow
-    }
-
-    public int CompareTo(IPartition<T> other)
-    {
-        return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
     }
 
     public List<T> Values { get; }
@@ -49,6 +44,11 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
     /// The partition needs to be split if it has reached its capacity and the next Insert would cause it to grow.
     /// </summary>
     public bool IsFull => Values.Count == Values.Capacity;
+
+    public int CompareTo(Partition<T> other)
+    {
+        return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
+    }
 
     public void Insert(T value)
     {
@@ -88,7 +88,7 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
     /// </summary>
     /// <param name="valueToInsert"></param>
     /// <returns>the Partition to insert AFTER this partition.</returns>
-    public (IPartition<T> partition, bool isSplitIntoRightPartition) SplitAndInsert(T valueToInsert)
+    public (Partition<T> partition, bool isSplitIntoRightPartition) SplitAndInsert(T valueToInsert)
     {
         var splitIndex = Values.BinarySearch(valueToInsert);
         if (splitIndex < 0)
