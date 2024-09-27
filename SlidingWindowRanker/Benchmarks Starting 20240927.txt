@@ -18,3 +18,17 @@ Removed the inheritance. Stopped unnecessary IDisposable
 |----------- |------------- |----------- |---------:|--------:|---------:|-----:|
 | RankValues | 1000000      | 10000      | 295.2 ms | 5.57 ms | 10.72 ms |    1 |
 | RankValues | 1000000      | 100000     | 436.1 ms | 8.70 ms | 15.00 ms |    2 |
+
+Remove IPartition
+
+| Method     | GetRankCount | WindowSize | Mean     | Error   | StdDev   | Rank |
+|----------- |------------- |----------- |---------:|--------:|---------:|-----:|
+| RankValues | 1000000      | 10000      | 275.0 ms | 4.63 ms |  5.15 ms |    1 |
+| RankValues | 1000000      | 100000     | 410.9 ms | 8.11 ms | 11.37 ms |    2 |
+
+Add AggressiveInlining attribute. Didn't help or hurt
+
+| Method     | GetRankCount | WindowSize | Mean     | Error   | StdDev   | Rank |
+|----------- |------------- |----------- |---------:|--------:|---------:|-----:|
+| RankValues | 1000000      | 10000      | 277.5 ms | 5.51 ms |  9.79 ms |    1 |
+| RankValues | 1000000      | 100000     | 409.0 ms | 7.93 ms | 16.02 ms |    2 |

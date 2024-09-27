@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace SlidingWindowRanker;
 
@@ -146,6 +147,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="valueToRemove"></param>
     /// <param name="beginIncrementsIndex"></param>
     /// <returns>the beginDecrementIndex - the index above which index must be decremented</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int DoRemove(int partitionIndexForRemove, ref int partitionIndexForInsert, T valueToRemove, ref int beginIncrementsIndex)
     {
         if (!_isQueueFull)
@@ -175,6 +177,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="valueToInsert"></param>
     /// <param name="partitionIndexForInsert">This can change to the split partition</param>
     /// <returns>the beginIncrementsIndex - the index above which index must be incremented</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int DoInsert(T valueToInsert, ref int partitionIndexForInsert)
     {
         var partitionForInsert = _partitions[partitionIndexForInsert];
@@ -194,6 +197,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         return partitionIndexForInsert + 1;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool SplitPartition(Partition<T> partitionForInsert, int partitionIndexForInsert, T valueToInsert)
     {
         CountPartitionSplits++;
@@ -205,6 +209,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         return isSplitIntoRightPartition;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void RemovePartition(int partitionIndexForRemove, Partition<T> partitionForRemove)
     {
         _partitions.RemoveAt(partitionIndexForRemove);
@@ -221,6 +226,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// </summary>
     /// <param name="beginIncrementsIndex">The partition index where we begin increments</param>
     /// <param name="beginDecrementsIndex">The partition index where we begin decrements</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AdjustPartitionsLowerBounds(int beginIncrementsIndex, int beginDecrementsIndex)
     {
         if (beginIncrementsIndex < beginDecrementsIndex)
@@ -249,6 +255,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// </summary>
     /// <param name="valueToInsert">The value to insert.</param>
     /// <param name="partitionForInsert"></param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void DoInsert(T valueToInsert, Partition<T> partitionForInsert)
     {
         Debug.Assert(!partitionForInsert.IsFull, "Must have been split before we get here");
@@ -265,6 +272,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <param name="valueToRemove">The value to remove.</param>
     /// <param name="partitionForRemove"></param>
     /// <returns>The index of the partition where the value was removed, or -1 if no value was removed.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void DoRemove(T valueToRemove, Partition<T> partitionForRemove)
     {
         Debug.Assert(partitionForRemove.Count > 1, "Partition should have been removed before we get here");
@@ -289,6 +297,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// </summary>
     /// <param name="value">The value to find the partition for.</param>
     /// <returns>The partition where we want to remove or insert the value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int FindPartitionContaining(T value)
     {
         var partitionIndex = LowerBound(value);
@@ -300,6 +309,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         return partitionIndex;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int LowerBound(T value)
     {
         var low = 0;

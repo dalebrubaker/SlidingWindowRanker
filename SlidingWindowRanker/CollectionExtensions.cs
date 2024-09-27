@@ -1,4 +1,6 @@
-﻿namespace SlidingWindowRanker;
+﻿using System.Runtime.CompilerServices;
+
+namespace SlidingWindowRanker;
 
 public static class CollectionExtensions
 {
@@ -32,6 +34,7 @@ public static class CollectionExtensions
     ///     the index of first element in the list that does not satisfy element less than value, or Count if no such
     ///     element is found
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int LowerBound<T>(this List<T> list, T value) where T : IComparable<T>
     {
         ArgumentNullException.ThrowIfNull(list);
@@ -69,6 +72,7 @@ public static class CollectionExtensions
     ///     Thrown if first or last are out of range,
     ///     or if first is greater than last.
     /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int LowerBound<T>(this List<T> list, int first, int last, T value) where T : IComparable<T>
     {
         ArgumentNullException.ThrowIfNull(list);
