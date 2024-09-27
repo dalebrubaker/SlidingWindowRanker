@@ -1,0 +1,20 @@
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
+Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
+.NET SDK 8.0.400
+  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+
+
+```
+| Method     | GetRankCount | WindowSize | Mean     | Error    | StdDev   | Rank |
+|----------- |------------- |----------- |---------:|---------:|---------:|-----:|
+| RankValues | 1000000      | 10000      | 364.1 ms |  7.17 ms | 13.99 ms |    1 |
+| RankValues | 1000000      | 100000     | 575.0 ms | 11.12 ms | 17.64 ms |    2 |
+
+Removed the inheritance. Stopped unnecessary IDisposable
+
+| Method     | GetRankCount | WindowSize | Mean     | Error   | StdDev   | Rank |
+|----------- |------------- |----------- |---------:|--------:|---------:|-----:|
+| RankValues | 1000000      | 10000      | 295.2 ms | 5.57 ms | 10.72 ms |    1 |
+| RankValues | 1000000      | 100000     | 436.1 ms | 8.70 ms | 15.00 ms |    2 |

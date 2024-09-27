@@ -11,18 +11,17 @@ namespace Benchmarks;
 public class BenchmarkSlidingWindowRanker
 {
     private static string s_ValuesToRankStr;
-    private SlidingWindowRanker<double> _ranker;
     private List<double> _getRankValues;
+    private SlidingWindowRanker<double> _ranker;
 
-    [Params(100000, 1000000)]
+    [Params(1000000)]
     public int GetRankCount { get; set; }
 
     private int TotalTestValues => GetRankCount + WindowSize;
 
-    [Params(1000, 10000, 100000)]
+    [Params(10000, 100000)]
     public int WindowSize { get; set; }
 
-   
     //[Params(0.5, 0.75, 1.0, 1.25)]
     //public double PartitionsMultipleOfDefault { get; set; }
 
@@ -46,7 +45,6 @@ public class BenchmarkSlidingWindowRanker
     [GlobalCleanup]
     public void Cleanup()
     {
-        _ranker?.Dispose();
     }
 
     [Benchmark]

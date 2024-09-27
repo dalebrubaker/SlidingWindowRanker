@@ -1,6 +1,6 @@
 ﻿namespace SlidingWindowRanker;
 
-public interface IPartition<T> : IDisposable where T : IComparable<T>
+public interface IPartition<T> where T : IComparable<T>
 {
     /// <summary>
     ///     This is the lower bound for the entire window of the lowest value in the partition.

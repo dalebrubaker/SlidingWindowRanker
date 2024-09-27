@@ -1,7 +1,4 @@
-﻿using System;
-using System.ComponentModel.Design.Serialization;
-
-namespace SlidingWindowRanker;
+﻿namespace SlidingWindowRanker;
 
 internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
 {
@@ -20,6 +17,11 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
         }
         Values = values;
         Values.Capacity = Math.Max(Values.Capacity, _partitionSize * 2); // Leave room to grow
+    }
+
+    public int CompareTo(IPartition<T> other)
+    {
+        return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
     }
 
     public List<T> Values { get; }
@@ -47,17 +49,6 @@ internal partial class Partition<T> : IPartition<T> where T : IComparable<T>
     /// The partition needs to be split if it has reached its capacity and the next Insert would cause it to grow.
     /// </summary>
     public bool IsFull => Values.Count == Values.Capacity;
-
-    public void Dispose()
-    {
-        // Nothing to do. Disposable because of PartitionUnsafe
-        GC.SuppressFinalize(this);
-    }
-
-    public int CompareTo(IPartition<T> other)
-    {
-        return other == null ? 0 : LowerBound.CompareTo(other.LowerBound);
-    }
 
     public void Insert(T value)
     {

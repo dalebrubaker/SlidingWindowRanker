@@ -1,10 +1,18 @@
-﻿// ReSharper disable ConvertToAutoProperty
+﻿using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("SlidingWindowRanker.Tests")]
+
+// ReSharper disable ConvertToAutoProperty
 // ReSharper disable ConvertToAutoPropertyWhenPossible
 // ReSharper disable InconsistentNaming
 // ReSharper disable ConvertToAutoPropertyWithPrivateSetter
 namespace SlidingWindowRanker;
 
-public partial class SlidingWindowRankerBase<T> where T : IComparable<T>
+/// <summary>
+/// partial so we can test the private methods.
+/// </summary>
+/// <typeparam name="T"></typeparam>
+public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
     internal List<IPartition<T>> TestPartitions => _partitions;
     internal List<T> TestValues => _partitions.SelectMany(p => p.Values).ToList();
