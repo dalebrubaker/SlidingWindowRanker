@@ -1,0 +1,84 @@
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
+Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
+.NET SDK 8.0.400
+  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+
+
+```
+| Method     | GetRankCount | WindowSize | Mean     | Error    | StdDev   | Rank |
+|----------- |------------- |----------- |---------:|---------:|---------:|-----:|
+| RankValues | 1000000      | 10000      | 364.1 ms |  7.17 ms | 13.99 ms |    1 |
+| RankValues | 1000000      | 100000     | 575.0 ms | 11.12 ms | 17.64 ms |    2 |
+
+Removed the inheritance. Stopped unnecessary IDisposable
+
+| Method     | GetRankCount | WindowSize | Mean     | Error   | StdDev   | Rank |
+|----------- |------------- |----------- |---------:|--------:|---------:|-----:|
+| RankValues | 1000000      | 10000      | 295.2 ms | 5.57 ms | 10.72 ms |    1 |
+| RankValues | 1000000      | 100000     | 436.1 ms | 8.70 ms | 15.00 ms |    2 |
+
+Remove IPartition
+
+| Method     | GetRankCount | WindowSize | Mean     | Error   | StdDev   | Rank |
+|----------- |------------- |----------- |---------:|--------:|---------:|-----:|
+| RankValues | 1000000      | 10000      | 275.0 ms | 4.63 ms |  5.15 ms |    1 |
+| RankValues | 1000000      | 100000     | 410.9 ms | 8.11 ms | 11.37 ms |    2 |
+
+Add AggressiveInlining attribute. Didn't help or hurt
+
+| Method     | GetRankCount | WindowSize | Mean     | Error   | StdDev   | Rank |
+|----------- |------------- |----------- |---------:|--------:|---------:|-----:|
+| RankValues | 1000000      | 10000      | 277.5 ms | 5.51 ms |  9.79 ms |    1 |
+| RankValues | 1000000      | 100000     | 409.0 ms | 7.93 ms | 16.02 ms |    2 |
+
+| Method     | GetRankCount | WindowSize | Mean     | Error   | StdDev   | Rank |
+|----------- |------------- |----------- |---------:|--------:|---------:|-----:|
+| RankValues | 1000000      | 10000      | 282.0 ms | 5.02 ms |  4.45 ms |    1 |
+| RankValues | 1000000      | 100000     | 419.0 ms | 8.34 ms | 16.47 ms |    2 |
+
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4169/23H2/2023Update/SunValley3)
+Intel Core i7-14700, 1 CPU, 28 logical and 20 physical cores
+.NET SDK 8.0.400
+  [Host]     : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
+
+
+```
+| Method     | GetRankCount | WindowSize | PartitionsMultipleOfDefault | Mean     | Error   | StdDev   | Rank |
+|----------- |------------- |----------- |---------------------------- |---------:|--------:|---------:|-----:|
+| RankValues | 1000000      | 1000       | 1                           | 234.5 ms | 3.54 ms |  3.31 ms |    1 |
+| RankValues | 1000000      | 1000       | 0.75                        | 237.5 ms | 4.69 ms |  8.58 ms |    1 |
+| RankValues | 1000000      | 1000       | 1.25                        | 240.3 ms | 4.50 ms |  8.35 ms |    1 |
+| RankValues | 1000000      | 3000       | 0.75                        | 258.7 ms | 4.51 ms |  4.22 ms |    2 |
+| RankValues | 1000000      | 3000       | 1                           | 263.0 ms | 5.21 ms | 10.04 ms |    2 |
+| RankValues | 1000000      | 3000       | 1.25                        | 264.1 ms | 5.15 ms |  5.93 ms |    2 |
+| RankValues | 1000000      | 10000      | 1                           | 270.7 ms | 5.41 ms |  6.01 ms |    2 |
+| RankValues | 1000000      | 10000      | 0.75                        | 274.3 ms | 5.48 ms | 10.29 ms |    2 |
+| RankValues | 1000000      | 10000      | 1.25                        | 277.9 ms | 5.25 ms |  4.91 ms |    2 |
+| RankValues | 1000000      | 30000      | 1                           | 310.8 ms | 4.14 ms |  3.87 ms |    3 |
+| RankValues | 1000000      | 30000      | 0.75                        | 311.2 ms | 4.03 ms |  3.36 ms |    3 |
+| RankValues | 1000000      | 30000      | 1.25                        | 314.0 ms | 6.19 ms |  9.99 ms |    3 |
+| RankValues | 1000000      | 100000     | 0.75                        | 400.3 ms | 7.62 ms |  7.13 ms |    4 |
+| RankValues | 1000000      | 100000     | 1                           | 424.4 ms | 6.80 ms |  9.53 ms |    5 |
+| RankValues | 1000000      | 100000     | 1.25                        | 441.1 ms | 8.61 ms | 13.65 ms |    5 |
+
+| Method     | GetRankCount | WindowSize | PartitionsMultipleOfDefault | Mean     | Error   | StdDev   | Rank |
+|----------- |------------- |----------- |---------------------------- |---------:|--------:|---------:|-----:|
+| RankValues | 1000000      | 1000       | 1                           | 227.8 ms | 4.29 ms |  5.57 ms |    1 |
+| RankValues | 1000000      | 1000       | 1.25                        | 233.8 ms | 4.67 ms |  4.58 ms |    1 |
+| RankValues | 1000000      | 1000       | 0.75                        | 236.8 ms | 3.34 ms |  3.12 ms |    1 |
+| RankValues | 1000000      | 3000       | 1.25                        | 251.5 ms | 4.96 ms |  9.32 ms |    2 |
+| RankValues | 1000000      | 3000       | 0.75                        | 259.6 ms | 3.38 ms |  2.99 ms |    2 |
+| RankValues | 1000000      | 3000       | 1                           | 266.0 ms | 4.59 ms |  4.29 ms |    2 |
+| RankValues | 1000000      | 10000      | 0.75                        | 270.7 ms | 4.32 ms |  4.04 ms |    2 |
+| RankValues | 1000000      | 10000      | 1                           | 274.5 ms | 4.87 ms |  4.55 ms |    2 |
+| RankValues | 1000000      | 10000      | 1.25                        | 280.4 ms | 5.53 ms |  9.55 ms |    2 |
+| RankValues | 1000000      | 30000      | 1.25                        | 309.3 ms | 6.15 ms |  9.01 ms |    3 |
+| RankValues | 1000000      | 30000      | 1                           | 320.9 ms | 5.97 ms |  6.13 ms |    3 |
+| RankValues | 1000000      | 30000      | 0.75                        | 324.6 ms | 4.12 ms |  3.44 ms |    3 |
+| RankValues | 1000000      | 100000     | 1                           | 398.4 ms | 6.74 ms |  9.00 ms |    4 |
+| RankValues | 1000000      | 100000     | 0.75                        | 401.3 ms | 7.39 ms | 15.91 ms |    4 |
+| RankValues | 1000000      | 100000     | 1.25                        | 417.2 ms | 8.32 ms | 10.22 ms |    4 |

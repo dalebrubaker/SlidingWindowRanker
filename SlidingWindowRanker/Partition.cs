@@ -76,7 +76,7 @@ internal partial class Partition<T> where T : IComparable<T>
         var index = Values.BinarySearch(value);
         if (index < 0)
         {
-            throw new SlidingWindowRankerException("The value to remove was not found in the partition.");
+            throw new SlidingWindowRankerException($"The value:{value} to remove was not found in the partition.");
         }
         Values.RemoveAt(index);
     }

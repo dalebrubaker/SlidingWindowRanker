@@ -20,6 +20,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     private readonly int _windowSize;
 
     private bool _isQueueFull;
+    private double _rankDenominator;
 
     /// <summary>
     /// Initializes a new instance of the SlidingWindowRanker class.
@@ -32,6 +33,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public SlidingWindowRanker(List<T> initialValues, int partitionCount = -1, int windowSize = -1, bool isSorted = false)
     {
+        _rankDenominator = initialValues.Count;
         if (windowSize < 0)
         {
             // Use wants to default to the size of the initial values
@@ -124,52 +126,69 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <returns>The fraction of values in the window that are less than the specified value.</returns>
     public double GetRank(T valueToInsert)
     {
-        T valueToRemove = default;
-        if (_windowSize < int.MaxValue)
+        if (_windowSize == int.MaxValue)
         {
             // When _windowSize is int.MaxValue, we don't need to waste time and memory using the queue
-            valueToRemove = _isQueueFull ? _valueQueue.Dequeue() : default;
-            _valueQueue.Enqueue(valueToInsert);
+            // The denominator of the rank is the number of values seen so far
+            _rankDenominator++;
         }
-        if (!_isQueueFull && _valueQueue.Count >= _windowSize)
+        else
         {
-            _isQueueFull = true;
+            _valueQueue.Enqueue(valueToInsert);
         }
 #if DEBUG
         _debugMessageRemove = null;
         _debugMessageInsert = null;
+        if (valueToInsert?.ToString() == "0")
+        {
+            _debugCounter++;
+        }
 #endif
         var partitionIndexForInsert = FindPartitionContaining(valueToInsert);
         var beginIncrementsIndex = DoInsert(valueToInsert, ref partitionIndexForInsert);
-        var partitionIndexForRemove = _isQueueFull ? FindPartitionContaining(valueToRemove) : int.MaxValue;
-        var beginDecrementsIndex = DoRemove(partitionIndexForRemove, ref partitionIndexForInsert, valueToRemove, ref beginIncrementsIndex);
+        var beginDecrementsIndex = DoRemove(ref partitionIndexForInsert, ref beginIncrementsIndex);
         AdjustPartitionsLowerBounds(beginIncrementsIndex, beginDecrementsIndex);
         var partitionForInsert = _partitions[partitionIndexForInsert];
 
         // Now get the rank
         var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToInsert);
         var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
-        var rank = _isQueueFull
-            ? (double)lowerBound / _windowSize
-            : (double)lowerBound / _valueQueue.Count; // Use _valueQueue.Count instead of _windowSize when the window is not yet full
+        var rank = lowerBound / _rankDenominator;
         return rank;
     }
 
     /// <summary>
     /// Removes the specified value from the window, either by removing within a partition or by removing the partition.
     /// </summary>
-    /// <param name="partitionIndexForRemove"></param>
     /// <param name="partitionIndexForInsert"></param>
-    /// <param name="valueToRemove"></param>
     /// <param name="beginIncrementsIndex"></param>
     /// <returns>the beginDecrementIndex - the index above which index must be decremented</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int DoRemove(int partitionIndexForRemove, ref int partitionIndexForInsert, T valueToRemove, ref int beginIncrementsIndex)
+    private int DoRemove(ref int partitionIndexForInsert, ref int beginIncrementsIndex)
     {
-        if (!_isQueueFull)
+        if (_windowSize == int.MaxValue)
         {
+            // No need to use the queue
             return _partitions.Count; // No removal
         }
+        if (!_isQueueFull)
+        {
+            _rankDenominator = _valueQueue.Count;
+            if (_valueQueue.Count < _windowSize)
+            {
+                // We don't remove anything because the window is not full
+                return _partitions.Count;
+            }
+            _isQueueFull = true;
+        }
+        var valueToRemove = _valueQueue.Dequeue();
+        if (valueToRemove?.ToString() == "0")
+        {
+#if DEBUG
+            _debugCounter--;
+#endif
+        }
+        var partitionIndexForRemove = FindPartitionContaining(valueToRemove);
         var partitionForRemove = _partitions[partitionIndexForRemove];
         if (partitionForRemove.Count == 1)
         {

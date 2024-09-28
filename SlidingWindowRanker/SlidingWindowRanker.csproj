@@ -2,11 +2,12 @@
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
+		
 		<LangVersion>latestmajor</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<!--		<Nullable>enable</Nullable>-->
 		<PackageId>BruSoftware.SlidingWindowRanker</PackageId>
-		<Version>1.1.2</Version>
+		<Version>1.1.3</Version>
 		<Authors>Dale Brubaker</Authors>
 		<Company>BruSoftware</Company>
 		<Description>Support high-performance ranking of an generic List of values in a window of size N where a new value is added to the right side of the window and the oldest one is removed from the left side of the window.</Description>

@@ -53,12 +53,12 @@ DefaultJob : .NET 8.0.8 (8.0.824.36612), X64 RyuJIT AVX2
 
 | Method     | GetRankCount | WindowSize | Mean      | Error    | StdDev   | Rank |
 |----------- |------------- |----------- |----------:|---------:|---------:|-----:|
-| RankValues | 100000       | 100000     |  24.91 ms | 0.244 ms | 0.228 ms |    1 |
-| RankValues | 100000       | 1000       |  25.04 ms | 0.490 ms | 0.602 ms |    1 |
-| RankValues | 100000       | 10000      |  27.42 ms | 0.367 ms | 0.343 ms |    2 |
-| RankValues | 1000000      | 1000       | 239.13 ms | 3.820 ms | 3.573 ms |    3 |
-| RankValues | 1000000      | 10000      | 273.61 ms | 5.349 ms | 9.781 ms |    4 |
-| RankValues | 1000000      | 100000     | 412.81 ms | 7.738 ms | 8.280 ms |    5 |
+| RankValues | 100000       | 1000       |  23.81 ms | 0.099 ms | 0.088 ms |    1 |
+| RankValues | 100000       | 100000     |  25.81 ms | 0.091 ms | 0.081 ms |    2 |
+| RankValues | 100000       | 10000      |  26.52 ms | 0.078 ms | 0.073 ms |    3 |
+| RankValues | 1000000      | 1000       | 237.77 ms | 0.644 ms | 0.603 ms |    4 |
+| RankValues | 1000000      | 10000      | 265.42 ms | 1.560 ms | 1.460 ms |    5 |
+| RankValues | 1000000      | 100000     | 374.91 ms | 2.407 ms | 2.251 ms |    6 |
 
 GetRankCount is the number of times GetRank is called in the benchmark.
 WindowSize is the size of the window in the benchmark, i.e., the number of values against which each new value is

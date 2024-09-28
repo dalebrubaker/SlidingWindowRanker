@@ -109,6 +109,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     }
 
 #if DEBUG
+    private int _debugCounter;
     private string _debugMessageInsert;
     private string _debugMessageRemove;
 #endif
