@@ -24,11 +24,27 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
     /// <summary>
     /// Initializes a new instance of the SlidingWindowRanker class.
+    /// The window size is set to the number of initial values.
+    /// The partition count is calculated as the square root of the window size.
+    /// </summary>
+    /// <param name="windowSize">-1 means to use initialValues.Count. Must be no smaller than initialValues.
+    /// int.MaxValue means to never remove a value from the left edge of the window.</param>
+    /// <param name="initialValues">The initial values to populate the sliding window, if not null.</param>
+    /// <param name="isSorted">true means the initialValues, if any, have already been sorted, thus preventing an additional sort here</param>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    public SlidingWindowRanker(int windowSize, List<T> initialValues = null, bool isSorted = false)
+        : this(initialValues ?? [], -1, windowSize, isSorted)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the SlidingWindowRanker class.
     /// </summary>
     /// <param name="initialValues">The initial values to populate the sliding window.</param>
     /// <param name="partitionCount">The number of partitions to divide the values into. If less than or equal to zero,
     ///     use the square root of the given or calculated window size, which is usually optimal or close to it.</param>
-    /// <param name="windowSize">Default -1 means to use initialValues.Count. Must be no smaller than initialValues</param>
+    /// <param name="windowSize">-1 means to use initialValues.Count. Must be no smaller than initialValues.
+    /// int.MaxValue means to never remove a value from the left edge of the window.</param>
     /// <param name="isSorted">true means the initialValues have already been sorted, thus preventing an additional sort here</param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public SlidingWindowRanker(List<T> initialValues, int partitionCount = -1, int windowSize = -1, bool isSorted = false)
@@ -45,7 +61,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
             throw new ArgumentOutOfRangeException(nameof(windowSize),
                 "The window size must be greater than 0, in order to have values to rank against.");
         }
-        if (partitionCount <= 0)
+        if (partitionCount < 1)
         {
             partitionCount = (int)Math.Sqrt(_windowSize);
         }
@@ -152,6 +168,24 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 
         // Now get the rank
         var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToInsert);
+        var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
+        var rank = lowerBound / _rankDenominator;
+        return rank;
+    }
+
+    /// <summary>
+    /// Returns the rank of the specified value, just like <see cref="GetRank(T)"/> except that the value
+    /// is not added to right edge of the window nor is a value removed from the left edge.
+    /// </summary>
+    /// <param name="valueToCheck"></param>
+    /// <returns></returns>
+    public double GetRankNoAdd(T valueToCheck)
+    {
+        var partitionIndexForInsert = FindPartitionContaining(valueToCheck);
+        var partitionForInsert = _partitions[partitionIndexForInsert];
+
+        // Now get the rank
+        var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToCheck);
         var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
         var rank = lowerBound / _rankDenominator;
         return rank;
