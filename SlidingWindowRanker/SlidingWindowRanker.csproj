@@ -1,9 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
-		
-		<LangVersion>latestmajor</LangVersion>
+		<TargetFramework>net9.0</TargetFramework>
+		<LangVersion>preview</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<!--		<Nullable>enable</Nullable>-->
 		<PackageId>BruSoftware.SlidingWindowRanker</PackageId>
