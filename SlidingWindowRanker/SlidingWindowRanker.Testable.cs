@@ -61,6 +61,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     internal void DebugGuardPartitionLowerBoundValuesAreCorrect()
     {
 #if DEBUG
+        if (_partitions.Count == 0)
+        {
+            return;
+        }
         if (_partitions[0].LowerBound != 0)
         {
             throw new SlidingWindowRankerException("The LowerBound of the first partition is not 0.");

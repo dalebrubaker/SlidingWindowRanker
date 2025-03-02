@@ -120,6 +120,15 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
             valuesAddedIntoPartitionsThusFar += getRangeCount;
             countRemainingValues = values.Count - valuesAddedIntoPartitionsThusFar;
         }
+        if (_partitions.Count == 0)
+        {
+            // We need at least one partition
+            var emptyPartition = new Partition<T>(new List<T>(), partitionSize)
+            {
+                LowerBound = 0
+            };
+            _partitions.Add(emptyPartition);
+        }
     }
 
     public int CountPartitionSplits { get; private set; }
@@ -224,10 +233,10 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         }
         var partitionIndexForRemove = FindPartitionContaining(valueToRemove);
         var partitionForRemove = _partitions[partitionIndexForRemove];
-        if (partitionForRemove.Count == 1)
+        if (partitionForRemove.Count == 1
+            && _partitions.Count > 1) // don't remove the last partition. We need at least one partition, but it can be empty
         {
             // The partition holding the value to remove will be empty after the remove
-            // But don't remove the partition because we are about to insert a value into it
             RemovePartition(partitionIndexForRemove, partitionForRemove);
             if (beginIncrementsIndex > partitionIndexForRemove)
             {
@@ -344,7 +353,8 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void DoRemove(T valueToRemove, Partition<T> partitionForRemove)
     {
-        Debug.Assert(partitionForRemove.Count > 1, "Partition should have been removed before we get here");
+        Debug.Assert(partitionForRemove.Count > 1 || _partitions.Count == 1,
+            "Partition should have been removed before we get here unless we are keeping one empty partition");
         partitionForRemove.Remove(valueToRemove);
 #if DEBUG
         _debugMessageRemove = $"Removed  value in _partitionForRemove={partitionForRemove}";
