@@ -43,6 +43,32 @@ var rank = ranker.GetRankNoAdd(value);
 * Optional bool isSorted: Flag to indicate that the initial values are already sorted, saving time and space when set to true. Defaults to false.
 * AFTER the defaults are applied, exceptions are thrown if the window size is less than 1 or the partition count is less than 1.
 
+## SlidingWindowStats — IQR-Based Robust Z-Score
+
+`SlidingWindowStats<T>` extends `SlidingWindowRanker<T>` with percentile and z-score methods that read from the same partitioned sorted structure. The window slides correctly across millions of bars at O(√N) per bar — same as ranking.
+
+```csharp
+var stats = new SlidingWindowStats<double>(windowSize);
+double median = stats.GetMedian();           // O(log √N)
+double q25    = stats.GetQ25();              // O(log √N)
+double q75    = stats.GetQ75();              // O(log √N)
+double iqr    = stats.GetIQR();              // O(log √N)
+double z      = stats.GetZScore(value);      // O(√N) — adds value to window
+double zPeek  = stats.GetZScoreNoAdd(value); // O(log √N) — no window update
+int n         = stats.Count;                  // current window count
+```
+
+**Z-score formula:** `z = (value − median) / (0.7413 × IQR)`
+
+The `0.7413` constant makes IQR a consistent estimator of σ (standard deviation), equivalent to the MAD-based formula `(value − median) / (1.4826 × MAD)` for normally distributed data:
+
+- For N(0, σ²): Q75 = +0.6745σ, Q25 = −0.6745σ → IQR = 1.3490σ
+- MAD = median(|xᵢ − median|) = 0.6745σ → IQR = 2 × MAD
+- Therefore σ = IQR / 1.3490 = 0.7413 × IQR
+- And: 1.4826 × MAD = 0.7413 × IQR
+
+Generic constraint: `T : IComparable<T>, INumber<T>` (.NET 7+ generic math).
+
 ## Contributing
 
 Contributions to Sliding Window Ranker are welcome! If you have an idea for a new feature or have found a bug, please

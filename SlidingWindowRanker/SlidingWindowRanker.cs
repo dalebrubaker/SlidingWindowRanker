@@ -5,7 +5,7 @@ namespace SlidingWindowRanker;
 
 public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
-    private readonly List<Partition<T>> _partitions = [];
+    internal readonly List<Partition<T>> _partitions = [];
 
     /// <summary>
     /// The queue of all values so we know which one to remove at the left edge of the window.
@@ -20,7 +20,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     private readonly int _windowSize;
 
     private bool _isQueueFull;
-    private double _rankDenominator;
+    internal double _rankDenominator;
 
     /// <summary>
     /// Initializes a new instance of the SlidingWindowRanker class.
