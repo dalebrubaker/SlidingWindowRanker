@@ -238,10 +238,13 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         {
             // The partition holding the value to remove will be empty after the remove
             RemovePartition(partitionIndexForRemove, partitionForRemove);
+            if (partitionIndexForRemove < partitionIndexForInsert)
+            {
+                partitionIndexForInsert--;
+            }
             if (beginIncrementsIndex > partitionIndexForRemove)
             {
                 beginIncrementsIndex--;
-                partitionIndexForInsert--;
             }
             return partitionIndexForRemove;
         }
