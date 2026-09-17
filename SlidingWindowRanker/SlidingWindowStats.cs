@@ -47,7 +47,9 @@ public class SlidingWindowStats<T> : SlidingWindowRanker<T>
     public int Count => (int)_rankDenominator;
 
     /// <summary>
-    /// Returns the value at the given percentile rank p ∈ [0, 1) from the current window.
+    /// Returns the value at the given percentile rank from the current window without interpolation.
+    /// The selected zero-based index is floor(p × Count), clamped to [0, Count - 1].
+    /// Consequently, p below zero returns the minimum and p greater than or equal to one returns the maximum.
     /// O(log √N) — binary search over partitions, then direct index into partition.Values.
     /// </summary>
     public T GetValueAtRank(double p)
@@ -159,12 +161,12 @@ public class SlidingWindowStats<T> : SlidingWindowRanker<T>
     {
         if (_rankDenominator < 2)
         {
-            GetRank(value);
+            Add(value);
             return 0;
         }
         var median = GetMedian();
         var iqr = GetIQR();
-        GetRank(value);
+        Add(value);
         if (iqr == 0)
         {
             return 0;

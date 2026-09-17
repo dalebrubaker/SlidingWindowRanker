@@ -35,6 +35,23 @@ public class SlidingWindowRankerCorrectnessTests
     }
 
     [Fact]
+    public void Add_UpdatesWindowWithoutCalculatingRank()
+    {
+        const int windowSize = 3;
+        var initial = new List<int> { 30, 10 };
+        var ranker = new SlidingWindowRanker<int>(initial, partitionCount: 2, windowSize: windowSize);
+        var reference = new ReferenceSlidingWindowRanker<int>(initial, windowSize);
+        var stream = new[] { 20, 40, 10, 10 };
+
+        for (var i = 0; i < stream.Length; i++)
+        {
+            reference.GetRank(stream[i]);
+            ranker.Add(stream[i]);
+            RankerInvariantChecker.AssertState(ranker, reference.Values, initial.Count + i + 1);
+        }
+    }
+
+    [Fact]
     public void EveryInitialCount_FromZeroThroughWindowSize_IsCorrect()
     {
         const int windowSize = 8;

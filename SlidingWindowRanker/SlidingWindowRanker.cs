@@ -151,12 +151,38 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     ///
     /// The given value given is added to the right side of the window and the oldest value is removed from the left side
     /// of the window. The result is what would be calculated based on the values in the window AFTER the add/remove.
-    /// But we determine the result BEFORE we do the add/remove so we can later have a different thread
-    /// or threads do the insert and/or remove. Finally, we adjust the partition LowerBound values to reflect the insert and remove.
+    /// The insert and removal are completed before the rank is calculated, so the returned rank describes
+    /// the updated window.
     /// </summary>
     /// <param name="valueToInsert">The value to calculate the Rank for.</param>
     /// <returns>The fraction of values in the window that are less than the specified value.</returns>
     public double GetRank(T valueToInsert)
+    {
+        var partitionIndexForInsert = AddValue(valueToInsert);
+        var partitionForInsert = _partitions[partitionIndexForInsert];
+
+        // Now get the rank
+        var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToInsert);
+        var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
+        var rank = lowerBound / _rankDenominator;
+        return rank;
+    }
+
+    /// <summary>
+    /// Adds a value to the right side of the window and removes the oldest value when the window is full,
+    /// without calculating a rank.
+    /// </summary>
+    /// <param name="valueToInsert">The value to add to the sliding window.</param>
+    public void Add(T valueToInsert)
+    {
+        AddValue(valueToInsert);
+    }
+
+    /// <summary>
+    /// Updates the window and returns the final partition index containing the inserted value.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int AddValue(T valueToInsert)
     {
         if (_windowSize == int.MaxValue)
         {
@@ -180,13 +206,7 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         var beginIncrementsIndex = DoInsert(valueToInsert, ref partitionIndexForInsert);
         var beginDecrementsIndex = DoRemove(ref partitionIndexForInsert, ref beginIncrementsIndex);
         AdjustPartitionsLowerBounds(beginIncrementsIndex, beginDecrementsIndex);
-        var partitionForInsert = _partitions[partitionIndexForInsert];
-
-        // Now get the rank
-        var indexWithinPartitionForInsert = partitionForInsert.GetLowerBoundWithinPartition(valueToInsert);
-        var lowerBound = partitionForInsert.LowerBound + indexWithinPartitionForInsert;
-        var rank = lowerBound / _rankDenominator;
-        return rank;
+        return partitionIndexForInsert;
     }
 
     /// <summary>

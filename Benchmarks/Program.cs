@@ -9,4 +9,4 @@ config = new DebugInProcessConfig();
 #else
 config = null;
 #endif
-var summarySlidingWindowRanker = BenchmarkRunner.Run<BenchmarkSlidingWindowRanker>(config);
+BenchmarkSwitcher.FromAssembly(typeof(BenchmarkSlidingWindowRanker).Assembly).Run(args, config);

@@ -48,6 +48,18 @@ public class SlidingWindowStatsTests
     }
 
     [Fact]
+    public void Quartiles_UseFloorIndexWithoutInterpolation()
+    {
+        var stats = new SlidingWindowStats<double>([1, 2, 3, 4]);
+
+        stats.GetQ25().Should().Be(2, "floor(0.25 * 4) selects zero-based index 1");
+        stats.GetQ75().Should().Be(4, "floor(0.75 * 4) selects zero-based index 3");
+        stats.GetIQR().Should().Be(2);
+        stats.GetValueAtRank(-1).Should().Be(1);
+        stats.GetValueAtRank(1).Should().Be(4);
+    }
+
+    [Fact]
     public void GetZScore_ReturnsApproximatelyZero_ForMedianValue()
     {
         var initialValues = new List<double> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
@@ -57,6 +69,21 @@ public class SlidingWindowStatsTests
         var z = stats.GetZScore(medianBefore);
 
         z.Should().BeApproximately(0.0, 0.01);
+    }
+
+    [Fact]
+    public void GetZScore_UsesPriorWindowThenSlidesWithoutCalculatingRank()
+    {
+        var stats = new SlidingWindowStats<double>([1, 2, 3, 4], partitionCount: 2, windowSize: 4);
+        const double value = 10;
+        var expected = (value - 2.5) / (SlidingWindowStats<double>.IQRScale * 2.0);
+
+        var actual = stats.GetZScore(value);
+
+        actual.Should().Be(expected);
+        stats.TestQueueValues.Should().Equal(2, 3, 4, 10);
+        stats.TestValues.Should().Equal(2, 3, 4, 10);
+        stats.Count.Should().Be(4);
     }
 
     [Fact]

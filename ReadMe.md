@@ -33,6 +33,7 @@ var ranker = new SlidingWindowRanker<double>(windowSize, initialValues);
 
 var rank = ranker.GetRank(value);
 var rank = ranker.GetRankNoAdd(value);
+ranker.Add(value); // update the window without calculating a rank
 ```
 
 ## Constructor options:
@@ -57,6 +58,8 @@ double z      = stats.GetZScore(value);      // O(√N) — adds value to window
 double zPeek  = stats.GetZScoreNoAdd(value); // O(log √N) — no window update
 int n         = stats.Count;                  // current window count
 ```
+
+Percentile values use the zero-based index `floor(p × Count)`, clamped to the available range, without interpolation.
 
 **Z-score formula:** `z = (value − median) / (0.7413 × IQR)`
 
