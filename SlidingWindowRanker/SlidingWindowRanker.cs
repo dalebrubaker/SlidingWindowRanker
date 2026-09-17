@@ -29,8 +29,9 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// </summary>
     /// <param name="windowSize">-1 means to use initialValues.Count. Must be no smaller than initialValues.
     /// int.MaxValue means to never remove a value from the left edge of the window.</param>
-    /// <param name="initialValues">The initial values to populate the sliding window, if not null.</param>
-    /// <param name="isSorted">true means the initialValues, if any, have already been sorted, thus preventing an additional sort here</param>
+    /// <param name="initialValues">The initial values to populate the sliding window, ordered oldest to newest, if not null.</param>
+    /// <param name="isSorted">true means the initialValues are ascending by value as well as oldest-to-newest,
+    /// preventing an additional sort here.</param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public SlidingWindowRanker(int windowSize, List<T> initialValues = null, bool isSorted = false)
         : this(initialValues ?? [], -1, windowSize, isSorted)
@@ -40,12 +41,13 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     /// <summary>
     /// Initializes a new instance of the SlidingWindowRanker class.
     /// </summary>
-    /// <param name="initialValues">The initial values to populate the sliding window.</param>
+    /// <param name="initialValues">The initial values to populate the sliding window, ordered oldest to newest.</param>
     /// <param name="partitionCount">The number of partitions to divide the values into. If less than or equal to zero,
     ///     use the square root of the given or calculated window size, which is usually optimal or close to it.</param>
     /// <param name="windowSize">-1 means to use initialValues.Count. Must be no smaller than initialValues.
     /// int.MaxValue means to never remove a value from the left edge of the window.</param>
-    /// <param name="isSorted">true means the initialValues have already been sorted, thus preventing an additional sort here</param>
+    /// <param name="isSorted">true means the initialValues are ascending by value as well as oldest-to-newest,
+    /// preventing an additional sort here.</param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public SlidingWindowRanker(List<T> initialValues, int partitionCount = -1, int windowSize = -1, bool isSorted = false)
     {
@@ -60,6 +62,11 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         {
             throw new ArgumentOutOfRangeException(nameof(windowSize),
                 "The window size must be greater than 0, in order to have values to rank against.");
+        }
+        if (initialValues.Count > _windowSize)
+        {
+            throw new ArgumentOutOfRangeException(nameof(windowSize),
+                "The window size must be at least the number of initial values.");
         }
         if (partitionCount < 1)
         {
@@ -88,13 +95,13 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
         if (_windowSize % 2 == 0)
         {
             // An even number of values in the window
-            partitionSize = _windowSize / partitionCount;
+            partitionSize = Math.Max(1, _windowSize / partitionCount);
         }
         else
         {
             // Add 1 to _windowSize so we can round up on the integer division. E.g. 5 values and 3 partitions
             // should have values per partition of [2, 2, 1] not [1, 1, 1]
-            partitionSize = Math.Max(1, (_windowSize + 1) / partitionCount);
+            partitionSize = Math.Max(1, (int)(((long)_windowSize + 1) / partitionCount));
         }
         if (values.Count == 0)
         {
@@ -223,14 +230,17 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
                 return _partitions.Count;
             }
             _isQueueFull = true;
+            // The insertion that first fills a partial window belongs in the window.
+            // Removal starts with the next insertion, when the queue exceeds the window size.
+            return _partitions.Count;
         }
         var valueToRemove = _valueQueue.Dequeue();
+#if DEBUG
         if (valueToRemove?.ToString() == "0")
         {
-#if DEBUG
             _debugCounter--;
-#endif
         }
+#endif
         var partitionIndexForRemove = FindPartitionContaining(valueToRemove);
         var partitionForRemove = _partitions[partitionIndexForRemove];
         if (partitionForRemove.Count == 1

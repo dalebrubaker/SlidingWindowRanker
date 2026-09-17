@@ -99,23 +99,6 @@ public class BruZScoreReproTests
 
     private static void AssertPartitionInvariants(SlidingWindowStats<double> stats)
     {
-        var partitions = stats.TestPartitions;
-        partitions.Count.Should().BeGreaterThan(0);
-        partitions[0].LowerBound.Should().Be(0);
-
-        var total = 0;
-        for (var i = 0; i < partitions.Count; i++)
-        {
-            var partition = partitions[i];
-            partition.Values.IsSortedAscending().Should().BeTrue($"partition {i}");
-            if (i > 0)
-            {
-                partition.LowerBound.Should().Be(partitions[i - 1].LowerBound + partitions[i - 1].Count);
-            }
-            total += partition.Count;
-        }
-
-        total.Should().Be(stats.Count);
-        stats.TestValues.IsSortedAscending().Should().BeTrue();
+        RankerInvariantChecker.AssertState(stats, stats.TestQueueValues, stats.TestWindowSize);
     }
 }

@@ -36,12 +36,12 @@ var rank = ranker.GetRankNoAdd(value);
 ```
 
 ## Constructor options:
-* Optional List{T} initialValues: The initial values to load into the window. This list is NOT modified. Defaults to an empty list.
+* Optional List{T} initialValues: The initial values to load into the window, in chronological FIFO order from oldest to newest. This list is NOT modified. Defaults to an empty list. Reverse-chronological input changes eviction order and is not inferred or reversed automatically.
 * Optional int windowSize: The width of the window of values to rank against. Defaults to initialValues.Count if they are supplied. 
     * int.MaxValue means no values will ever be removed from the window, so it grows forever.
 * Optional int partitionCount. The number of partitions into which the window is divided (for faster performance). Defaults to the square root of windowSize, which is usually close to optimal.
-* Optional bool isSorted: Flag to indicate that the initial values are already sorted, saving time and space when set to true. Defaults to false.
-* AFTER the defaults are applied, exceptions are thrown if the window size is less than 1 or the partition count is less than 1.
+* Optional bool isSorted: Flag to indicate that the initial values are already ascending by value, saving sorting work when set to true. Defaults to false. Because the same input also defines FIFO order, `isSorted: true` is only appropriate when the oldest-to-newest sequence is value-sorted too.
+* AFTER the defaults are applied, exceptions are thrown if the window size is less than 1, the window size is smaller than the initial population, or the partition count is less than 1.
 
 ## SlidingWindowStats — IQR-Based Robust Z-Score
 

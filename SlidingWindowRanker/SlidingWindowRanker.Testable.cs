@@ -16,6 +16,9 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
 {
     internal List<Partition<T>> TestPartitions => _partitions;
     internal List<T> TestValues => _partitions.SelectMany(p => p.Values).ToList();
+    internal List<T> TestQueueValues => _valueQueue.ToList();
+    internal int TestWindowSize => _windowSize;
+    internal double TestRankDenominator => _rankDenominator;
 
     internal void Test_DoInsert(T valueToInsert)
     {
