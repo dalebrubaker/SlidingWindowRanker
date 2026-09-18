@@ -19,6 +19,9 @@ and more.
   normally defined as LESS THAN OR EQUAL rather than LESS THAN. So, the values returned will be in the range ([0, 1] NOT
   inclusive of 1) rather than [0, 1] inclusive.
 - The fraction returned can be multiplied by 10 to get a decile rank or by 100 to get a percentile rank.
+- For realtime bars that update many times before they close, `RemoveLast`, `ReplaceLastAndGetRank` and
+  `SlidingWindowStats.ReplaceLastAndGetZScore` replace the newest observation instead of appending another one,
+  so a bar contributes exactly one observation however many times it updates.
 - This program is NOT thread-safe. If you need to use it in a multi-threaded environment, you will need to provide your
   own synchronization.
 
@@ -34,7 +37,62 @@ var ranker = new SlidingWindowRanker<double>(windowSize, initialValues);
 var rank = ranker.GetRank(value);
 var rank = ranker.GetRankNoAdd(value);
 ranker.Add(value); // update the window without calculating a rank
+
+var removed = ranker.RemoveLast();              // undo the most recent observation
+var rank = ranker.ReplaceLastAndGetRank(value); // replace the most recent observation
+int n = ranker.Count;                           // number of values currently in the window
 ```
+
+## Realtime bars — replacing the newest observation
+
+`GetRank`, `Add` and `GetZScore` each treat their argument as a **new** observation. A realtime bar that
+updates many times before it closes would therefore contribute one observation per tick instead of one
+observation per bar. `RemoveLast` and the `ReplaceLast...` methods exist for exactly this case: track the
+absolute bar index, call `GetRank`/`GetZScore` on the first update of a bar, and call the matching
+`ReplaceLast...` method on every later update of that same bar.
+
+```csharp
+if (barAbsolute != _lastBarAbsolute)
+{
+    _lastBarAbsolute = barAbsolute;
+    rank = ranker.GetRank(value);              // a new bar: a new observation
+}
+else
+{
+    rank = ranker.ReplaceLastAndGetRank(value); // the same bar updating: replace its observation
+}
+```
+
+### `T RemoveLast()`
+
+Undoes the most recent observation. It removes the **newest** value from the right edge and, when the add
+that placed it there evicted the oldest value from the left edge, **restores that evicted value**. The
+window is therefore left exactly as it was before that add, which is what makes replacement exact rather
+than approximate. It returns the removed value, so the observation can be handed to another ranker — the
+sign-change case where a value moves between a plus ranker and a minus ranker.
+
+Only the single most recent add can be undone. Calling `RemoveLast` again removes whatever is then newest,
+but there is no longer an eviction to restore, so the window shrinks by one. In other words, the first call
+rewinds an add and further calls trim observations off the newest end.
+
+It throws a `SlidingWindowRankerException` when the window is empty, leaving the window unmodified. When the
+window size is `int.MaxValue` the chronological sequence is deliberately not retained, because nothing is
+ever evicted, so only the single newest value can be removed; a second consecutive `RemoveLast` throws.
+
+`CountPartitionSplits` and `CountPartitionRemoves` count work actually performed and are never rolled back.
+
+### `double ReplaceLastAndGetRank(T value)`
+
+`RemoveLast` followed by `GetRank`, so the returned rank is identical to what `GetRank(value)` would have
+returned had the replaced value never been added at all. The number of values in the window and their
+chronological order are unchanged, and no additional value is evicted. The rank keeps the same
+"rank AFTER insertion" semantics as `GetRank`: the fraction of the updated window that is less than `value`,
+where the updated window already contains `value` and no longer contains the value it replaced.
+
+Repeated calls for successive updates of the same bar always leave the window holding exactly one
+observation for that bar and always rank against the same set of prior observations.
+
+Cost is O(log √N) to locate each partition plus O(√N) to update it — the same order as an add.
 
 ## Constructor options:
 * Optional List{T} initialValues: The initial values to load into the window, in chronological FIFO order from oldest to newest. This list is NOT modified. Defaults to an empty list. Reverse-chronological input changes eviction order and is not inferred or reversed automatically.
@@ -57,7 +115,20 @@ double iqr    = stats.GetIQR();              // O(log √N)
 double z      = stats.GetZScore(value);      // O(√N) — adds value to window
 double zPeek  = stats.GetZScoreNoAdd(value); // O(log √N) — no window update
 int n         = stats.Count;                  // current window count
+
+double zReplace = stats.ReplaceLastAndGetZScore(value); // O(√N) — replaces the newest observation
 ```
+
+`ReplaceLastAndGetZScore` is the z-score counterpart of `ReplaceLastAndGetRank`, for realtime bars that
+update many times before they close. The ordering is: undo the add that placed the newest value (removing
+it and restoring whatever it evicted), score `value` against the values that remain — which are exactly the
+prior observations — then add `value` to the window. The result is therefore identical to what
+`GetZScore(value)` would have returned had the replaced value never been added at all.
+
+Partial windows, fewer than two prior values, and a zero IQR behave exactly as in `GetZScore`: the value is
+still added and `0` is returned. Note that the count used for the "fewer than two" test is the count after
+the newest value has been undone. It throws a `SlidingWindowRankerException` when the window is empty,
+leaving the window unmodified.
 
 Percentile values use the zero-based index `floor(p × Count)`, clamped to the available range, without interpolation.
 

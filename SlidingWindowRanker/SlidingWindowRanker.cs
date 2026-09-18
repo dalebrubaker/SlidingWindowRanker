@@ -8,10 +8,12 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     internal readonly List<Partition<T>> _partitions = [];
 
     /// <summary>
-    /// The queue of all values so we know which one to remove at the left edge of the window.
+    /// All retained values in chronological order (oldest first), so we know which one to remove
+    /// at the left edge of the window and which one is the newest at the right edge.
     /// They are NOT sorted. They are in the order in which they were added.
+    /// Not populated when <see cref="_windowSize"/> is int.MaxValue, because nothing is ever evicted.
     /// </summary>
-    private readonly Queue<T> _valueQueue;
+    private readonly ValueDeque<T> _valueDeque;
 
     /// <summary>
     /// The size of the window. Normally this is the same as the number of initial values,
@@ -20,6 +22,23 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     private readonly int _windowSize;
 
     private bool _isQueueFull;
+
+    /// <summary>
+    /// The newest value, tracked only when <see cref="_windowSize"/> is int.MaxValue and therefore
+    /// <see cref="_valueDeque"/> is not populated. See <see cref="RemoveLast"/>.
+    /// </summary>
+    private T _newestValue;
+
+    private bool _hasNewestValue;
+
+    /// <summary>
+    /// The value evicted from the left edge by the most recent add, if that add evicted one.
+    /// <see cref="RemoveLast"/> restores it, so that undoing an add restores the window exactly.
+    /// </summary>
+    private T _lastEvictedValue;
+
+    private bool _hasLastEvictedValue;
+
     internal double _rankDenominator;
 
     /// <summary>
@@ -77,8 +96,24 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
             throw new ArgumentOutOfRangeException(nameof(partitionCount),
                 "The partition count must be at least 1, in order to have values to rank against.");
         }
-        _valueQueue = new Queue<T>(initialValues);
-        _isQueueFull = _valueQueue.Count >= _windowSize;
+        if (_windowSize == int.MaxValue)
+        {
+            // Nothing is ever evicted, so retaining every value would waste time and memory.
+            // Only the newest value is retained, which is all RemoveLast needs.
+            _valueDeque = new ValueDeque<T>([]);
+            if (initialValues.Count > 0)
+            {
+                _newestValue = initialValues[^1];
+                _hasNewestValue = true;
+            }
+        }
+        else
+        {
+            // Cap growth at the window size plus the single transient value that exists
+            // between the insert and the eviction within AddValue
+            _valueDeque = new ValueDeque<T>(initialValues, _windowSize + 1);
+        }
+        _isQueueFull = _valueDeque.Count >= _windowSize;
         List<T> values;
         if (!isSorted)
         {
@@ -143,6 +178,13 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     public int CountPartitionRemoves { get; private set; }
 
     /// <summary>
+    /// The number of values currently in the window, which is the denominator of every rank.
+    /// Useful for callers to check warmup readiness and to guard <see cref="RemoveLast"/>.
+    /// When the window size is int.MaxValue nothing is ever evicted, so this is the number of values seen so far.
+    /// </summary>
+    public int Count => (int)_rankDenominator;
+
+    /// <summary>
     /// Returns the rank of the specified value, as a fraction of the total number of values in the window
     /// that are LESS THAN the given value.
     /// This is Cumulative Distribution Function (CDF) value for the specified value
@@ -186,13 +228,15 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     {
         if (_windowSize == int.MaxValue)
         {
-            // When _windowSize is int.MaxValue, we don't need to waste time and memory using the queue
+            // When _windowSize is int.MaxValue, we don't need to waste time and memory using the deque
             // The denominator of the rank is the number of values seen so far
             _rankDenominator++;
+            _newestValue = valueToInsert;
+            _hasNewestValue = true;
         }
         else
         {
-            _valueQueue.Enqueue(valueToInsert);
+            _valueDeque.AddLast(valueToInsert);
         }
 #if DEBUG
         _debugMessageRemove = null;
@@ -202,6 +246,9 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
             _debugCounter++;
         }
 #endif
+
+        // Only the most recent add can be undone, so any earlier eviction is now permanent
+        _hasLastEvictedValue = false;
         var partitionIndexForInsert = FindPartitionContaining(valueToInsert);
         var beginIncrementsIndex = DoInsert(valueToInsert, ref partitionIndexForInsert);
         var beginDecrementsIndex = DoRemove(ref partitionIndexForInsert, ref beginIncrementsIndex);
@@ -228,6 +275,159 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     }
 
     /// <summary>
+    /// Undoes the most recent observation: removes the NEWEST value from the right edge of the window and,
+    /// when the add that placed it there evicted the oldest value from the left edge, restores that evicted
+    /// value. The window is therefore left EXACTLY as it was before that add.
+    ///
+    /// This exists for realtime bars that update many times before they close. Call this to undo the
+    /// observation contributed by the previous update of the bar, so the bar contributes exactly one
+    /// observation once it closes. <see cref="ReplaceLastAndGetRank"/> does the undo-and-redo in one step.
+    ///
+    /// Only the single most recent add can be undone this way. Calling this again removes the value that is
+    /// then newest, but there is no longer an eviction to restore, so the window shrinks by one. In other
+    /// words the first call rewinds an add, and further calls trim observations off the newest end.
+    ///
+    /// <see cref="CountPartitionSplits"/> and <see cref="CountPartitionRemoves"/> are cumulative counters of
+    /// work actually performed, so they are never rolled back.
+    ///
+    /// O(log sqrt(N)) to locate each partition plus O(sqrt(N)) to update it, the same cost as an add.
+    /// </summary>
+    /// <returns>The value that was removed, which is the value most recently added.</returns>
+    /// <exception cref="SlidingWindowRankerException">The window is empty, so there is no value to remove.
+    /// The window is not modified when this is thrown.
+    ///
+    /// Also thrown when the window size is int.MaxValue and this is called twice without an intervening add.
+    /// That mode deliberately does not retain the chronological sequence, because nothing is ever evicted,
+    /// so only the single newest value is available to remove.</exception>
+    public T RemoveLast()
+    {
+        return RemoveLastCore(nameof(RemoveLast));
+    }
+
+    /// <summary>
+    /// Replaces the newest value in the window with <paramref name="valueToInsert"/> and returns the rank
+    /// of <paramref name="valueToInsert"/>, atomically from the point of view of the caller.
+    ///
+    /// Equivalent to <see cref="RemoveLast"/> followed by <see cref="GetRank"/>, so the result is identical
+    /// to what <see cref="GetRank"/> would have returned had the replaced value never been added at all:
+    /// <list type="bullet">
+    /// <item>The number of values in the window and their chronological order are unchanged. The replacement
+    /// takes the place in the sequence held by the value it replaces, so no additional value is evicted.</item>
+    /// <item>The returned rank uses the same "rank AFTER insertion" semantics as <see cref="GetRank"/>:
+    /// it is the fraction of the updated window that is LESS THAN <paramref name="valueToInsert"/>,
+    /// where the updated window already contains <paramref name="valueToInsert"/> and no longer contains
+    /// the value it replaced.</item>
+    /// </list>
+    /// Calling this repeatedly for successive updates of the same realtime bar always leaves the window
+    /// holding exactly one observation for that bar, whatever value it last had, and always ranks against
+    /// the same set of prior observations.
+    /// </summary>
+    /// <param name="valueToInsert">The value that replaces the newest value in the window.</param>
+    /// <returns>The fraction of values in the updated window that are less than the specified value.</returns>
+    /// <exception cref="SlidingWindowRankerException">The window is empty, so there is no value to replace.
+    /// The window is not modified when this is thrown. See <see cref="RemoveLast"/> for the int.MaxValue limitation.</exception>
+    public double ReplaceLastAndGetRank(T valueToInsert)
+    {
+        RemoveLastCore(nameof(ReplaceLastAndGetRank));
+        return GetRank(valueToInsert);
+    }
+
+    /// <summary>
+    /// The shared implementation of <see cref="RemoveLast"/>, naming the caller in any exception message.
+    /// </summary>
+    private protected T RemoveLastCore(string operationName)
+    {
+        // Validate before mutating anything, so a failure cannot corrupt the window
+        var valueToRemove = RemoveNewestFromSequence(operationName);
+        RemoveValueFromPartitions(valueToRemove);
+        if (_hasLastEvictedValue)
+        {
+            // The add being undone evicted the oldest value, so put it back at the left edge
+            var valueToRestore = _lastEvictedValue;
+            _lastEvictedValue = default;
+            _hasLastEvictedValue = false;
+            InsertValueIntoPartitions(valueToRestore);
+            _valueDeque.AddFirst(valueToRestore);
+            _rankDenominator = _valueDeque.Count;
+            _isQueueFull = _valueDeque.Count >= _windowSize;
+        }
+        return valueToRemove;
+    }
+
+    /// <summary>
+    /// Removes the newest value from the chronological sequence and updates the denominator and
+    /// queue-full state, leaving the partitions to the caller.
+    /// </summary>
+    private T RemoveNewestFromSequence(string operationName)
+    {
+        if (_windowSize == int.MaxValue)
+        {
+            if (!_hasNewestValue)
+            {
+                throw new SlidingWindowRankerException(
+                    $"{operationName} requires a newest value to remove. When the window size is int.MaxValue only the "
+                    + "single newest value is retained, because nothing is ever evicted, so the newest value cannot be "
+                    + "removed twice without an intervening add.");
+            }
+            var newestValue = _newestValue;
+            _newestValue = default;
+            _hasNewestValue = false;
+            _rankDenominator--;
+            return newestValue;
+        }
+        if (_valueDeque.Count == 0)
+        {
+            throw new SlidingWindowRankerException(
+                $"{operationName} requires at least one value in the window, but the window is empty.");
+        }
+        var valueToRemove = _valueDeque.RemoveLast();
+        _rankDenominator = _valueDeque.Count;
+
+        // Dropping below the window size means the next add refills the window instead of evicting
+        _isQueueFull = _valueDeque.Count >= _windowSize;
+        return valueToRemove;
+    }
+
+    /// <summary>
+    /// Removes a value from the sorted partitions and repairs the lower bounds, with nothing inserted.
+    /// </summary>
+    private void RemoveValueFromPartitions(T valueToRemove)
+    {
+        var partitionIndexForRemove = FindPartitionContaining(valueToRemove);
+        var partitionForRemove = _partitions[partitionIndexForRemove];
+        int beginDecrementsIndex;
+        if (partitionForRemove.Count == 1
+            && _partitions.Count > 1) // don't remove the last partition. We need at least one partition, but it can be empty
+        {
+            // The partition holding the value to remove will be empty after the remove
+            RemovePartition(partitionIndexForRemove, partitionForRemove);
+
+            // The partition that followed the removed one now sits at partitionIndexForRemove
+            beginDecrementsIndex = partitionIndexForRemove;
+        }
+        else
+        {
+            DoRemove(valueToRemove, partitionForRemove);
+            beginDecrementsIndex = partitionIndexForRemove + 1;
+        }
+
+        // Nothing was inserted, so every partition at or after the removal point shifts down by one
+        AdjustPartitionsLowerBounds(_partitions.Count, beginDecrementsIndex);
+    }
+
+    /// <summary>
+    /// Inserts a value into the sorted partitions and repairs the lower bounds, with nothing removed.
+    /// </summary>
+    private void InsertValueIntoPartitions(T valueToInsert)
+    {
+        var partitionIndexForInsert = FindPartitionContaining(valueToInsert);
+        var beginIncrementsIndex = DoInsert(valueToInsert, ref partitionIndexForInsert);
+
+        // Nothing was removed, so every partition after the insertion point shifts up by one
+        AdjustPartitionsLowerBounds(beginIncrementsIndex, _partitions.Count);
+    }
+
+    /// <summary>
     /// Removes the specified value from the window, either by removing within a partition or by removing the partition.
     /// </summary>
     /// <param name="partitionIndexForInsert"></param>
@@ -238,13 +438,13 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     {
         if (_windowSize == int.MaxValue)
         {
-            // No need to use the queue
+            // No need to use the deque
             return _partitions.Count; // No removal
         }
         if (!_isQueueFull)
         {
-            _rankDenominator = _valueQueue.Count;
-            if (_valueQueue.Count < _windowSize)
+            _rankDenominator = _valueDeque.Count;
+            if (_valueDeque.Count < _windowSize)
             {
                 // We don't remove anything because the window is not full
                 return _partitions.Count;
@@ -254,7 +454,9 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
             // Removal starts with the next insertion, when the queue exceeds the window size.
             return _partitions.Count;
         }
-        var valueToRemove = _valueQueue.Dequeue();
+        var valueToRemove = _valueDeque.RemoveFirst();
+        _lastEvictedValue = valueToRemove;
+        _hasLastEvictedValue = true;
 #if DEBUG
         if (valueToRemove?.ToString() == "0")
         {
@@ -435,6 +637,6 @@ public partial class SlidingWindowRanker<T> where T : IComparable<T>
     public override string ToString()
     {
         return
-            $"_windowSize={_windowSize:N0} #values={_valueQueue.Count:N0} #partitions={_partitions.Count} #splits={CountPartitionSplits:N0} #removes={CountPartitionRemoves:N0}";
+            $"_windowSize={_windowSize:N0} #values={Count:N0} #partitions={_partitions.Count} #splits={CountPartitionSplits:N0} #removes={CountPartitionRemoves:N0}";
     }
 }

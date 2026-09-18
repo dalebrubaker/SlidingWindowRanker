@@ -42,11 +42,6 @@ public class SlidingWindowStats<T> : SlidingWindowRanker<T>
     }
 
     /// <summary>
-    /// Current number of values in the window. Useful for callers to check warmup readiness.
-    /// </summary>
-    public int Count => (int)_rankDenominator;
-
-    /// <summary>
     /// Returns the value at the given percentile rank from the current window without interpolation.
     /// The selected zero-based index is floor(p × Count), clamped to [0, Count - 1].
     /// Consequently, p below zero returns the minimum and p greater than or equal to one returns the maximum.
@@ -172,6 +167,32 @@ public class SlidingWindowStats<T> : SlidingWindowRanker<T>
             return 0;
         }
         return (double.CreateChecked(value) - double.CreateChecked(median)) / (IQRScale * iqr);
+    }
+
+    /// <summary>
+    /// Replaces the newest value in the window with <paramref name="value"/> and returns its IQR-based
+    /// robust z-score, atomically from the caller's point of view.
+    ///
+    /// The ordering is: undo the add that placed the newest value (removing it and restoring whatever it
+    /// evicted), score <paramref name="value"/> against the values that REMAIN, which are exactly the prior
+    /// values, then add <paramref name="value"/> to the window. The result is therefore identical to what
+    /// <see cref="GetZScore"/> would have returned had the replaced value never been added at all.
+    /// Calling this repeatedly for successive updates of the same realtime bar leaves the window holding
+    /// exactly one observation for that bar and always scores against the same prior window.
+    ///
+    /// Partial windows, fewer than two prior values, and a zero IQR behave exactly as in <see cref="GetZScore"/>:
+    /// the value is still added and 0 is returned. Note that the count used for the "fewer than two" test is
+    /// the count AFTER the newest value has been removed. Total cost O(√N).
+    /// </summary>
+    /// <param name="value">The value that replaces the newest value in the window.</param>
+    /// <returns>z = (value − median) / (IQRScale × IQR) over the prior window, or 0.</returns>
+    /// <exception cref="SlidingWindowRankerException">The window is empty, so there is no value to replace.
+    /// The window is not modified when this is thrown. See <see cref="SlidingWindowRanker{T}.RemoveLast"/>
+    /// for the int.MaxValue limitation.</exception>
+    public double ReplaceLastAndGetZScore(T value)
+    {
+        RemoveLastCore(nameof(ReplaceLastAndGetZScore));
+        return GetZScore(value);
     }
 
     /// <summary>
